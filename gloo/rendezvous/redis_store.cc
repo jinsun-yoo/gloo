@@ -118,5 +118,16 @@ void RedisStore::wait(
   }
 }
 
+void RedisStore::flushall() {
+  redisReply* reply = (redisReply*)redisCommand(redis_, "FLUSHALL");
+  if (reply == nullptr) {
+      std::cerr << "Failed to execute FLUSHALL command on Redis" << std::endl;
+      redisFree(redis_);
+      exit(1);
+  }
+  std::cout << "FLUSHALL command executed successfully on Redis" << std::endl;
+  freeReplyObject(reply);
+}
+
 } // namespace rendezvous
 } // namespace gloo

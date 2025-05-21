@@ -48,6 +48,8 @@ class RedisStore : public Store {
       const std::vector<std::string>& keys,
       const std::chrono::milliseconds& timeout) override;
 
+  virtual void flushall();
+
  protected:
   redisContext* redis_;
 };
