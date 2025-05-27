@@ -173,6 +173,9 @@ int establish_connection(TestContext *test_ctx, ParsedArgs args) {
   auto redis_store = std::make_shared<rendezvous::RedisStore>(args.redis_ip);
   rdzv_context->connectFullMesh(redis_store, dev);
   test_ctx->gloo_context = rdzv_context;
+if (args.rank == 0) {
+  	redis_store->flushall();
+  }
   return 1;
 }
 
