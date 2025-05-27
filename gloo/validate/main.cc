@@ -66,11 +66,12 @@ struct ParsedArgs {
   int recv_peer;
   Mode mode = PINGPONG;
   int world_size = 2;
+bool is_client = false;
 };
 
 ParsedArgs parse_arguments(int argc, char *argv[]) {
 	ParsedArgs args;
-	const char* const short_opts = "r:b:s:i:m:w:";
+	const char* const short_opts = "r:b:s:i:m:w:c:";
 	const option long_opts[] = {
 		{"rank", required_argument, nullptr, 'r'},
 		{"buff_size", required_argument, nullptr, 'b'},
@@ -78,6 +79,7 @@ ParsedArgs parse_arguments(int argc, char *argv[]) {
 		{"iter", required_argument, nullptr, 'i'},
 		{"mode", required_argument, nullptr, 'm'},
 		{"world_size", required_argument, nullptr, 'w'},
+{"client", no_argument, nullptr, 'c'},
 	};
 	int opt;
 	while ((opt = getopt_long(argc, argv, short_opts, long_opts, nullptr)) != -1) {
@@ -111,6 +113,9 @@ ParsedArgs parse_arguments(int argc, char *argv[]) {
 				args.world_size = std::stoi(optarg);
 				std::cout << "Parse world size " << args.world_size << " " << optarg << std::endl;
 				break;
+case 'c':
+				args.is_client = true;
+				break;
 			default:
 				std::cerr << "Usage: " << argv[0]
 				          << " --rank <rank> --buff_size <buffer_size>"
@@ -142,6 +147,7 @@ ParsedArgs parse_arguments(int argc, char *argv[]) {
 	std::cout << "  Recv Peer: " << args.recv_peer << std::endl;
 	std::cout << "  Mode: " << (args.mode == PINGPONG ? "PINGPONG" : "RING") << std::endl;
 	std::cout << "  World Size: " << args.world_size << std::endl;
+std::cout << "  Is Client: " << args.is_client << std::endl;
 	return args;
 }
 
@@ -171,12 +177,12 @@ int establish_connection(TestContext *test_ctx, ParsedArgs args) {
 }
 
 
-void ctx_init(TestContext *test_ctx, ParsedArgs args)  {
+void ctx_init_pingpong(TestContext *test_ctx, ParsedArgs args)  {
   // Create the MR
-  std::cout << "Context initialized" << std::endl;
+  std::cout << "Pingpong context initialized" << std::endl;
   auto cycle_buffer = sysconf(_SC_PAGESIZE);
   void *buf = memalign(cycle_buffer, args.buff_size);
-  if (args.rank == 0) {
+  if (args.is_client) {
   	test_ctx->mr = test_ctx->gloo_context->getPair(args.peer_rank)->createSendBuffer(1, buf, args.buff_size);
   } else {
   	test_ctx->mr = test_ctx->gloo_context->getPair(args.peer_rank)->createRecvBuffer(1, buf, args.buff_size);
@@ -184,7 +190,7 @@ void ctx_init(TestContext *test_ctx, ParsedArgs args)  {
   test_ctx->buf_start_addr = buf;
 
   void *ack_buf = memalign(cycle_buffer, 4);
-  if (args.rank == 0) {
+  if (args.is_client) {
   	test_ctx->ack = test_ctx->gloo_context->getPair(args.peer_rank)->createRecvBuffer(2, buf, 4);
   } else {
   	test_ctx->ack = test_ctx->gloo_context->getPair(args.peer_rank)->createSendBuffer(2, buf, 4);
@@ -349,7 +355,7 @@ int main(int argc, char** argv) {
   if (args.mode == RING) {
 	ctx_init_ring(test_ctx, args);
   } else {
-  	ctx_init(test_ctx, args);
+  	ctx_init_pingpong(test_ctx, args);
   }
   set_up_connection();
   ctx_set_send_wqes();
@@ -357,7 +363,7 @@ int main(int argc, char** argv) {
   if (args.mode == RING) {
 	std::cout << "Running ring test" << std::endl;
 	run_iter_ring(test_ctx, args);
-  } else if (args.rank == 0) {
+  } else if (args.is_client) {
   	std::cout << "Running pingpong test client" << std::endl;
 	run_iter_pingpong_client(test_ctx, args);
   } else {
