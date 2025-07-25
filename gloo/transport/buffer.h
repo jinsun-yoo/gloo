@@ -9,6 +9,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <iostream>
 
 namespace gloo {
 namespace transport {
@@ -32,6 +33,20 @@ class Buffer {
 
   virtual void waitRecv() = 0;
   virtual void waitSend() = 0;
+  
+  // Default implementations for polling - can be overridden by derived classes
+  virtual bool pollSend() {
+    // Default behavior: try to wait with no timeout (non-blocking check)
+    // This is a simple fallback - derived classes should provide better implementations
+    std::cerr << "pollSend not implemented, returning false by default." << std::endl;
+    return false;  // Conservatively return false by default
+  }
+  
+  virtual bool pollRecv() {
+    // Default behavior: try to wait with no timeout (non-blocking check)  
+    // This is a simple fallback - derived classes should provide better implementations
+    return false;  // Conservatively return false by default
+  }
 
  protected:
   int slot_;

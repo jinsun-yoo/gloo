@@ -33,6 +33,9 @@ class Buffer : public ::gloo::transport::Buffer {
   virtual void waitRecv() override;
   virtual void waitSend() override;
 
+  bool pollRecv() ;
+  bool pollSend();
+
   void handleCompletion(struct ibv_wc* wc);
 
   void signalError(const std::exception_ptr& ex);
