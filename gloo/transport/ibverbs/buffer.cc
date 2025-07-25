@@ -123,6 +123,33 @@ void Buffer::waitRecv() {
   }
 }
 
+bool Buffer::pollRecv() { 
+  if (recvCompletions_ == 0) {
+    pair_->pollCompletions();
+    if (recvCompletions_ == 0) {
+      return false;
+    }
+  }
+  recvCompletions_ --;
+  return true;
+}
+
+bool Buffer::pollSend() {
+  // Assuming sync, sendCompletions is always 0 or 1
+  if (sendCompletions_ == 0) {
+    GLOO_ENFORCE_GT(sendPending_, 0, "No send to wait for");
+    auto start = std::chrono::steady_clock::now();
+    // We can assume a single pair is never used by more than one
+    // thread, so there is no need to acquire the mutex here.
+    pair_->pollCompletions();
+    if (sendCompletions_ == 0) {
+      return false;
+    }
+  }
+  sendCompletions_ --;
+  return true;
+}
+
 // Wait for the previous send operation to finish.
 void Buffer::waitSend() {
   // If the pair is in synchronous mode, the current thread is
