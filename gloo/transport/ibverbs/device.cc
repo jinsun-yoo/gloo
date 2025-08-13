@@ -143,18 +143,18 @@ Device::Device(const struct attr& attr, ibv_context* context)
 
   // Start thread to poll completion queue and dispatch
   // completions for completed work requests.
-  done_ = false;
-  loop_.reset(new std::thread(&Device::loop, this));
+  // done_ = false;
+  // loop_.reset(new std::thread(&Device::loop, this));
 }
 
 Device::~Device() {
   int rv;
 
-  done_ = true;
-  loop_->join();
+  // done_ = true;
+  // loop_->join();
 
-  rv = ibv_destroy_comp_channel(comp_channel_);
-  GLOO_ENFORCE_EQ(rv, 0, strerror(errno));
+  // rv = ibv_destroy_comp_channel(comp_channel_);
+  // GLOO_ENFORCE_EQ(rv, 0, strerror(errno));
 
   rv = ibv_dealloc_pd(pd_);
   GLOO_ENFORCE_EQ(rv, 0, strerror(errno));
