@@ -44,12 +44,12 @@ Pair::Pair(
     // Pairs use asynchronous completion handling by default so
     // we call ibv_req_notify_cq(3) to request the first notification.
     cq_ = ibv_create_cq(
-        dev_->context_, kCompletionQueueCapacity, this, dev_->comp_channel_, 0);
+        dev_->context_, kCompletionQueueCapacity, this, NULL/*dev_->comp_channel_*/, 0);
     GLOO_ENFORCE(cq_, "ibv_create_cq failed: ", strerror(errno));
 
     // Arm notification mechanism for completion queue.
-    rv = ibv_req_notify_cq(cq_, kNotifyOnAnyCompletion);
-    GLOO_ENFORCE_EQ(rv, 0);
+    // rv = ibv_req_notify_cq(cq_, kNotifyOnAnyCompletion);
+    // GLOO_ENFORCE_EQ(rv, 0);
   }
 
   // Create queue pair
