@@ -46,7 +46,6 @@ option(GLOO_USE_CUDA_TOOLKIT "Build CUDA with FindCUDATookit.cmake and enable_la
 option(GLOO_USE_TORCH_DTYPES "Build CUDA kernels with pytorch dtypes" 0)
 
 set(USE_IBVERBS ON)
-set(USE_REDIS ON)
 message(STATUS "USE_REDIS: ${USE_REDIS}")
 if (USE_REDIS)
         message(STATUS "Redis support is enabled")
