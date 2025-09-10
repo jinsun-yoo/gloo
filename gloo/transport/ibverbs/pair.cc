@@ -456,26 +456,27 @@ void Pair::pollCompletions() {
   std::array<struct ibv_wc, kCompletionQueueCapacity> wc;
 
   // Invoke handler for every work completion.
-  for (;;) {
-    auto nwc = ibv_poll_cq(cq_, wc.size(), wc.data());
-    GLOO_ENFORCE_GE(nwc, 0);
+  // for (;;) {
+  auto nwc = ibv_poll_cq(cq_, wc.size(), wc.data());
+  GLOO_ENFORCE_GE(nwc, 0);
 
-    // Handle work completions
-    for (int i = 0; i < nwc; i++) {
-      checkErrorState();
-      try {
-        handleCompletion(&wc[i]);
-      } catch (const std::exception& ex) {
-        GLOO_ERROR("Exception in handleCompletion: ", ex.what());
-        throw;
-      }
-    }
-
-    // Break unless wc was filled
-    if (nwc == 0 || nwc < wc.size()) {
-      break;
+  // Handle work completions
+  for (int i = 0; i < nwc; i++) {
+    checkErrorState();
+    try {
+      handleCompletion(&wc[i]);
+    } catch (const std::exception& ex) {
+      GLOO_ERROR("Exception in handleCompletion: ", ex.what());
+      throw;
     }
   }
+
+
+  // // Break unless wc was filled
+  // if (nwc == 0 || nwc < wc.size()) {
+  //   break;
+  // }
+  // }
 }
 
 void Pair::handleCompletion(struct ibv_wc* wc) {
