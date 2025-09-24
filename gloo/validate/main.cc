@@ -408,7 +408,9 @@ void run_iter_pingpong_server (TestContext *test_ctx, ParsedArgs args) {
 void run_iter_ring (TestContext *test_ctx, ParsedArgs args) {
 	 int sent = 0;
 	size_t chunk_size = int (args.buff_size / (args.world_size * args.num_channels));
+	std::uint64_t duration_sum_us = 0;
 	while(args.iter < 0? true : sent < args.iter) {
+		auto start_timestamp_us = std::chrono::high_resolution_clock::now();
 		for (int i = 0; i < args.world_size - 1; i++) {
 			for (int j = 0; j < args.num_channels; j++) {
 				test_ctx->send_mrs[j]->send(i * chunk_size, chunk_size, i * chunk_size);
@@ -441,7 +443,14 @@ void run_iter_ring (TestContext *test_ctx, ParsedArgs args) {
 			
 		//std::cout << "Sent is " << sent << std::endl;
 		sent += 1;
+		auto end_timestamp_us = std::chrono::high_resolution_clock::now();
+		std::uint64_t duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end_timestamp_us - start_timestamp_us).count();
+		duration_sum_us += duration_us;
+		std::cout << "Rank " << args.rank << " completed iter " << sent << " in " << duration_us << " us" << std::endl;
+
+		MPI_Barrier(MPI_COMM_WORLD);
 	}
+	std::cout << "Average iter is " << (double)duration_sum_us / sent << " us" << std::endl;
 /*	
 	size_t offset = 0;
 	size_t length = 1048576;
