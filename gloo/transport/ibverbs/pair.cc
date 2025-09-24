@@ -572,7 +572,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     }
 
     // Notify any buffer waiting for the details of its remote peer.
-    cv_.notify_all();
+    //cv_.notify_all();
 
     // Backfill receive work requests.
     postReceive();

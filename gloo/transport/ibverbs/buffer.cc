@@ -240,7 +240,7 @@ void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {
       std::cout << std::endl;
     }
     recvCompletions_++;
-    recvCv_.notify_one();
+    // recvCv_.notify_one();
   } else if (wc->opcode == IBV_WC_RDMA_WRITE) {
     if (debug_) {
       std::cout << "[" << getpid() << "] ";
@@ -249,7 +249,7 @@ void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {
     }
     sendCompletions_++;
     sendPending_--;
-    sendCv_.notify_one();
+    // sendCv_.notify_one();
   } else {
     GLOO_ENFORCE(false, "Unexpected completion (opcode: ", wc->opcode, ")");
   }
@@ -258,8 +258,8 @@ void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {
 void Buffer::signalError(const std::exception_ptr& ex) {
   std::lock_guard<std::mutex> lock(m_);
   ex_ = ex;
-  recvCv_.notify_all();
-  sendCv_.notify_all();
+  // recvCv_.notify_all();
+  // sendCv_.notify_all();
 }
 
 void Buffer::checkErrorState() {
