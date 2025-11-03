@@ -655,6 +655,9 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset) {
 }
 
 void Pair::signalIoFailure(const std::string& msg) {
+  std::cerr << "Rank " << rank_ << ": at QP " << qp_->qp_num << " exiting due to IO failure: " << msg << std::endl;
+  throw std::runtime_error("Rank " + std::to_string(rank_) + " at QP " + std::to_string(qp_->qp_num) + " exiting due to IO failure: " + msg);
+  return;
   std::lock_guard<std::mutex> lock(m_);
   GLOO_ERROR(msg);
   auto ex = ::gloo::IoException(msg);
