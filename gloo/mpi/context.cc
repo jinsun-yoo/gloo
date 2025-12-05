@@ -86,7 +86,7 @@ Context::~Context() {
 }
 
 void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
-  std::vector<std::vector<char>> addresses(size);
+  std::vector<std::vector<std::vector<char>>> addresses(size, std::vector<std::vector<char>>(nchannels));
   unsigned long maxLength = 0;
   int rv;
 
@@ -98,12 +98,14 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
       continue;
     }
 
-    auto& pair = transportContext->createPair(i);
+    for (int j = 0; j < nchannels; j++) {
+      auto& pair = transportContext->createPair(i, j);
 
-    // Store address for pair for this rank
-    auto address = pair->address().bytes();
-    maxLength = std::max(maxLength, address.size());
-    addresses[i] = std::move(address);
+      // Store address for pair for this rank
+      auto address = pair->address().bytes();
+      maxLength = std::max(maxLength, address.size());
+      addresses[i][j] = std::move(address);
+    }
   }
 
   // Agree on maximum length so we can prepare buffers
@@ -114,15 +116,17 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   }
 
   // Prepare input and output
-  std::vector<char> in(size * maxLength);
-  std::vector<char> out(size * size * maxLength);
+  std::vector<char> in(size * nchannels * maxLength);
+  std::vector<char> out(size * size * nchannels * maxLength);
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
     }
 
-    auto& address = addresses[i];
-    memcpy(in.data() + (i * maxLength), address.data(), address.size());
+    for (int j = 0; j < nchannels; j++) {
+      auto& address = addresses[i][j];
+      memcpy(in.data() + (i * nchannels + j) * maxLength, address.data(), address.size());
+    }
   }
 
   // Allgather to collect all addresses of all pairs
@@ -138,10 +142,12 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
       continue;
     }
 
-    auto offset = (rank + i * size) * maxLength;
-    std::vector<char> address(maxLength);
-    memcpy(address.data(), out.data() + offset, maxLength);
-    transportContext->getPair(i)->connect(address);
+    for (int j = 0; j < nchannels; j++) {
+      auto offset = (rank + (i * size + j) * size) * maxLength;
+      std::vector<char> address(maxLength);
+      memcpy(address.data(), out.data() + offset, maxLength);
+      transportContext->getPair(i, j)->connect(address);
+    }
   }
 
   device_ = dev;
