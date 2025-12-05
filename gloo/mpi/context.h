@@ -32,7 +32,7 @@ class Context : public ::gloo::Context {
 
   // This constructor clone the specified MPI common world. Use it if
   // you are calling MPI_Init and MPI_Finalize yourself.
-  explicit Context(const MPI_Comm& comm);
+  explicit Context(const MPI_Comm& comm, int nchannels = 1);
 
   virtual ~Context();
 

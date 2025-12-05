@@ -75,8 +75,8 @@ std::shared_ptr<Context> Context::createManaged() {
   return context;
 }
 
-Context::Context(const MPI_Comm& comm)
-    : ::gloo::Context(MPICommRank(comm), MPICommSize(comm)) {
+Context::Context(const MPI_Comm& comm, int nchannels)
+    : ::gloo::Context(MPICommRank(comm), MPICommSize(comm), nchannels) {
   auto error = MPI_Comm_dup(comm, &comm_);
   GLOO_ENFORCE(error == MPI_SUCCESS, "MPI_Comm_dup: ", error);
 }

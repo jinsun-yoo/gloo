@@ -25,16 +25,17 @@ class UnboundBuffer;
 
 class Context {
  public:
-  Context(int rank, int size, int base = 2);
+  Context(int rank, int size, int nchannels = 1, int base = 2);
   ~Context();
 
   const int rank;
   const int size;
+  int nchannels;
   int base;
 
   std::shared_ptr<transport::Device>& getDevice();
 
-  std::unique_ptr<transport::Pair>& getPair(int i);
+  std::unique_ptr<transport::Pair>& getPair(int i, int channel = 0);
 
   // Factory function to create an unbound buffer for use with the
   // transport used for this context. Use this function to avoid tying
