@@ -86,6 +86,9 @@ else()
   set(GLOO_HAVE_TRANSPORT_TCP 0)
   set(GLOO_HAVE_TRANSPORT_TCP_TLS 0)
 endif()
+# GENIE: Disable TCP Transport
+set(GLOO_HAVE_TRANSPORT_TCP 0)
+set(GLOO_HAVE_TRANSPORT_TCP_TLS 0)
 
 # Compile ibverbs transport if libibverbs is available
 if(USE_IBVERBS)
