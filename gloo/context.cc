@@ -17,8 +17,8 @@ namespace gloo {
 
 static const std::chrono::seconds kTimeoutDefault = std::chrono::seconds(30);
 
-Context::Context(int rank, int size, int base)
-    : rank(rank), size(size), base(base), slot_(0), timeout_(kTimeoutDefault) {
+Context::Context(int rank, int size, int nchannels, int base)
+    : rank(rank), size(size), nchannels(nchannels), base(base), slot_(0), timeout_(kTimeoutDefault) {
   GLOO_ENFORCE_GE(rank, 0);
   GLOO_ENFORCE_LT(rank, size);
   GLOO_ENFORCE_GE(size, 1);
@@ -31,9 +31,9 @@ std::shared_ptr<transport::Device>& Context::getDevice() {
   return device_;
 }
 
-std::unique_ptr<transport::Pair>& Context::getPair(int i) {
+std::unique_ptr<transport::Pair>& Context::getPair(int i, int channel) {
   GLOO_ENFORCE(transportContext_, "Transport context not set!");
-  return transportContext_->getPair(i);
+  return transportContext_->getPair(i, channel);
 }
 
 std::unique_ptr<transport::UnboundBuffer> Context::createUnboundBuffer(

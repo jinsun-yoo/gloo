@@ -57,7 +57,8 @@ class Device : public ::gloo::transport::Device,
 
   virtual std::shared_ptr<::gloo::transport::Context> createContext(
       int rank,
-      int size) override;
+      int size, 
+      int nchannels) override;
 
  protected:
   struct attr attr_;

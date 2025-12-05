@@ -11,6 +11,9 @@
 #include <algorithm>
 #include <cstring>
 #include <mutex>
+#include <iostream>
+#include <unistd.h>
+
 
 #include "gloo/common/error.h"
 #include "gloo/common/logging.h"
@@ -75,8 +78,8 @@ std::shared_ptr<Context> Context::createManaged() {
   return context;
 }
 
-Context::Context(const MPI_Comm& comm)
-    : ::gloo::Context(MPICommRank(comm), MPICommSize(comm)) {
+Context::Context(const MPI_Comm& comm, int nchannels)
+    : ::gloo::Context(MPICommRank(comm), MPICommSize(comm), nchannels) {
   auto error = MPI_Comm_dup(comm, &comm_);
   GLOO_ENFORCE(error == MPI_SUCCESS, "MPI_Comm_dup: ", error);
 }
@@ -86,24 +89,26 @@ Context::~Context() {
 }
 
 void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
-  std::vector<std::vector<char>> addresses(size);
+  std::vector<std::vector<char>> addresses(size * nchannels);
   unsigned long maxLength = 0;
   int rv;
 
   // Create pair to connect to every other node in the collective
-  auto transportContext = dev->createContext(rank, size);
+  auto transportContext = dev->createContext(rank, size, nchannels);
   transportContext->setTimeout(getTimeout());
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
     }
 
-    auto& pair = transportContext->createPair(i);
+    for (int j = 0; j < nchannels; j++) {
+      auto& pair = transportContext->createPair(i, j);
 
-    // Store address for pair for this rank
-    auto address = pair->address().bytes();
-    maxLength = std::max(maxLength, address.size());
-    addresses[i] = std::move(address);
+      // Store address for pair for this rank
+      auto address = pair->address().bytes();
+      maxLength = std::max(maxLength, address.size());
+      addresses[i * nchannels + j] = std::move(address);
+    }
   }
 
   // Agree on maximum length so we can prepare buffers
@@ -114,15 +119,17 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   }
 
   // Prepare input and output
-  std::vector<char> in(size * maxLength);
-  std::vector<char> out(size * size * maxLength);
+  std::vector<char> in(size * nchannels * maxLength);
+  std::vector<char> out(size * size * nchannels * maxLength);
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
     }
 
-    auto& address = addresses[i];
-    memcpy(in.data() + (i * maxLength), address.data(), address.size());
+    for (int j = 0; j < nchannels; j++) {
+      auto& address = addresses[i * nchannels + j];
+      memcpy(in.data() + (i * nchannels + j) * maxLength, address.data(), address.size());
+    }
   }
 
   // Allgather to collect all addresses of all pairs
@@ -138,10 +145,13 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
       continue;
     }
 
-    auto offset = (rank + i * size) * maxLength;
-    std::vector<char> address(maxLength);
-    memcpy(address.data(), out.data() + offset, maxLength);
-    transportContext->getPair(i)->connect(address);
+    for (int j = 0; j < nchannels; j++) {
+      auto offset = (rank * nchannels + i * size * nchannels + j) * maxLength;
+      std::vector<char> address(maxLength);
+      memcpy(address.data(), out.data() + offset, maxLength);
+      transportContext->getPair(i, j)->connect(address);
+      std::string addr_str(address.begin(), address.end());
+    }
   }
 
   device_ = dev;

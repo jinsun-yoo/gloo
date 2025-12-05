@@ -187,9 +187,9 @@ bool Device::hasGPUDirect() const {
   return hasNvPeerMem_;
 }
 
-std::shared_ptr<transport::Context> Device::createContext(int rank, int size) {
+std::shared_ptr<transport::Context> Device::createContext(int rank, int size, int nchannels) {
   return std::shared_ptr<transport::Context>(
-      new ibverbs::Context(shared_from_this(), rank, size));
+      new ibverbs::Context(shared_from_this(), rank, size, nchannels));
 }
 
 void Device::loop() {

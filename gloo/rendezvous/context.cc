@@ -25,7 +25,7 @@ Context::~Context() {}
 void Context::connectFullMesh(
     std::shared_ptr<rendezvous::Store> store,
     std::shared_ptr<transport::Device>& dev) {
-  auto transportContext = dev->createContext(rank, size);
+  auto transportContext = dev->createContext(rank, size, nchannels);
   transportContext->setTimeout(getTimeout());
 
   transportContext->createAndConnectAllPairs(std::move(store));

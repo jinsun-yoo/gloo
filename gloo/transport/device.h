@@ -50,7 +50,7 @@ class Device {
   // Factory function to create transport context. A single device may
   // service multiple contexts, with no constraints on this process
   // its rank or the context size.
-  virtual std::shared_ptr<Context> createContext(int rank, int size) = 0;
+  virtual std::shared_ptr<Context> createContext(int rank, int size, int nchannels) = 0;
 };
 
 } // namespace transport

@@ -45,7 +45,7 @@ class BufferHandler {
 };
 
 class Pair : public ::gloo::transport::Pair {
-  static constexpr int kMaxBuffers = 8;
+  static constexpr int kMaxBuffers = 32;
   static constexpr auto kRecvCompletionQueueCapacity = kMaxBuffers;
   static constexpr auto kSendCompletionQueueCapacity = kMaxBuffers;
   static constexpr auto kCompletionQueueCapacity =

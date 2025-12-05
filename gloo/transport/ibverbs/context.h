@@ -23,12 +23,11 @@ class Pair;
 class Context : public ::gloo::transport::Context,
                 public std::enable_shared_from_this<Context> {
  public:
-  Context(std::shared_ptr<Device> device, int rank, int size);
+  Context(std::shared_ptr<Device> device, int rank, int size, int nchannels = 1);
 
   virtual ~Context();
 
-  std::unique_ptr<transport::Pair>& createPair(int rank) override;
-
+  std::unique_ptr<transport::Pair>& createPair(int rank, int channel = 0) override;
   std::unique_ptr<transport::UnboundBuffer> createUnboundBuffer(
       void* ptr,
       size_t size) override;
