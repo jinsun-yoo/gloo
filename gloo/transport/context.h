@@ -38,16 +38,17 @@ class Context {
   using slot_t = uint64_t;
   using rank_t = int;
 
-  Context(int rank, int size);
+  Context(int rank, int size, int nchannels);
 
   virtual ~Context();
 
   const int rank;
   const int size;
+  const int nchannels;
 
-  virtual std::unique_ptr<Pair>& getPair(int rank);
+  virtual std::unique_ptr<Pair>& getPair(int rank, int channel = 0);
 
-  virtual std::unique_ptr<Pair>& createPair(int rank) = 0;
+  virtual std::unique_ptr<Pair>& createPair(int rank, int channel = 0) = 0;
 
   virtual void createAndConnectAllPairs(std::shared_ptr<IStore> store);
 
@@ -87,7 +88,7 @@ class Context {
   // that getPair() returns a reference to this type. Functions
   // internal to this class can cast these points to the native
   // transport specific type.
-  std::vector<std::unique_ptr<Pair>> pairs_;
+  std::vector<std::vector<std::unique_ptr<Pair>>> pairs_;
 
   // Default timeout for new pairs (e.g. during initialization) and
   // any kind of send/recv operation.

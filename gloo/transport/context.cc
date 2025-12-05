@@ -12,15 +12,18 @@
 namespace gloo {
 namespace transport {
 
-Context::Context(int rank, int size) : rank(rank), size(size) {
+Context::Context(int rank, int size, int nchannels) : rank(rank), size(size), nchannels(nchannels) {
   pairs_.resize(size);
+  for(int i = 0; i < nchannels; i++) {
+    pairs_[i].resize(nchannels);
+  }
 }
 
 // Have to provide implementation for pure virtual destructor.
 Context::~Context() {}
 
-std::unique_ptr<transport::Pair>& Context::getPair(int rank_2) {
-  return pairs_.at(rank_2);
+std::unique_ptr<transport::Pair>& Context::getPair(int rank_2, int channel) {
+  return pairs_.at(rank_2).at(channel);
 }
 
 void Context::createAndConnectAllPairs(std::shared_ptr<IStore> store) {
@@ -62,7 +65,7 @@ void Context::createAndConnectAllPairs(std::shared_ptr<IStore> store) {
       continue;
     }
 
-    auto& pair = createPair(i);
+    auto& pair = createPair(i, 0);
     pair->setLocalRank(localRank);
     auto addrBytes = pair->address().bytes();
     allBytes.insert(allBytes.end(), addrBytes.begin(), addrBytes.end());
@@ -84,7 +87,7 @@ void Context::createAndConnectAllPairs(std::shared_ptr<IStore> store) {
     // Connect to other side of this pair
     auto allAddrs = store->get(key.str());
     auto addr = extractAddress(allAddrs, i);
-    getPair(i)->connect(addr);
+    getPair(i, 0)->connect(addr);
   }
 }
 

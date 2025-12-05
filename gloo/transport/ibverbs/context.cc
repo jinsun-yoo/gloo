@@ -17,15 +17,15 @@ namespace gloo {
 namespace transport {
 namespace ibverbs {
 
-Context::Context(std::shared_ptr<Device> device, int rank, int size)
-    : ::gloo::transport::Context(rank, size), device_(device) {}
+Context::Context(std::shared_ptr<Device> device, int rank, int size, int nchannels)
+    : ::gloo::transport::Context(rank, size, nchannels), device_(device) {}
 
 Context::~Context() {}
 
-std::unique_ptr<transport::Pair>& Context::createPair(int rank) {
-  pairs_[rank] = std::unique_ptr<transport::Pair>(
+std::unique_ptr<transport::Pair>& Context::createPair(int rank, int channel) {
+  pairs_[rank][channel] = std::unique_ptr<transport::Pair>(
       new ibverbs::Pair(rank, device_, getTimeout()));
-  return pairs_[rank];
+  return pairs_[rank][channel];
 }
 
 std::unique_ptr<transport::UnboundBuffer> Context::createUnboundBuffer(
@@ -39,9 +39,11 @@ void Context::signalException(const std::string& msg) {
   // all of its pairs have been created it is not mutated until the
   // context is destructed. Therefore, we don't need to acquire this
   // context's instance lock before looping over `pairs_`.
-  for (auto& pair : pairs_) {
-    if (pair) {
-      reinterpret_cast<ibverbs::Pair*>(pair.get())->signalIoFailure(msg);
+  for (auto& pairs_rank : pairs_) {
+    for (auto &pair : pairs_rank) {
+      if (pair) {
+        reinterpret_cast<ibverbs::Pair*>(pair.get())->signalIoFailure(msg);
+      }
     }
   }
 }
