@@ -8,6 +8,7 @@
 
 #include "gloo/transport/ibverbs/context.h"
 
+#include <iostream>
 #include "gloo/common/error.h"
 #include "gloo/transport/ibverbs/device.h"
 #include "gloo/transport/ibverbs/pair.h"
@@ -22,10 +23,15 @@ Context::Context(std::shared_ptr<Device> device, int rank, int size, int nchanne
 
 Context::~Context() {}
 
-std::unique_ptr<transport::Pair>& Context::createPair(int rank, int channel) {
-  pairs_[rank][channel] = std::unique_ptr<transport::Pair>(
-      new ibverbs::Pair(rank, device_, getTimeout()));
-  return pairs_[rank][channel];
+std::unique_ptr<transport::Pair>& Context::createPair(int dstrank, int channel) {
+  if (!device_) {
+    std::cout << "ERROR: device_ is null!" << std::endl;
+    throw std::runtime_error("Device is null");
+  }
+  ibverbs::Pair* ibv_pair = new ibverbs::Pair(dstrank, device_, getTimeout(), rank);
+  pairs_[dstrank][channel] = std::unique_ptr<transport::Pair>(ibv_pair);
+  std::cout << "From rank " << rank << " Create QP with rank " << dstrank << " and channel " << channel << " with QPID " << ibv_pair->self_.addr_.qpn << " and dst QPID " << ibv_pair->peer_.addr_.qpn << std::endl;
+  return pairs_[dstrank][channel];
 }
 
 std::unique_ptr<transport::UnboundBuffer> Context::createUnboundBuffer(

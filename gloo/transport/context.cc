@@ -14,7 +14,7 @@ namespace transport {
 
 Context::Context(int rank, int size, int nchannels) : rank(rank), size(size), nchannels(nchannels) {
   pairs_.resize(size);
-  for(int i = 0; i < nchannels; i++) {
+  for(int i = 0; i < size; i++) {
     pairs_[i].resize(nchannels);
   }
 }

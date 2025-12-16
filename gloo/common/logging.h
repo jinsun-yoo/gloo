@@ -27,7 +27,7 @@ namespace gloo {
 #define GLOO_INFO(...) GLOO_LOG_MSG("INFO", __VA_ARGS__)
 #define GLOO_ERROR(...) GLOO_LOG_MSG("ERROR", __VA_ARGS__)
 #define GLOO_WARN(...) GLOO_LOG_MSG("WARN", __VA_ARGS__)
-#define GLOO_DEBUG(...) // GLOO_LOG_MSG("DEBUG", __VA_ARGS__)
+#define GLOO_DEBUG(...) //GLOO_LOG_MSG("DEBUG", __VA_ARGS__)
 
 class EnforceNotMet : public std::exception {
  public:

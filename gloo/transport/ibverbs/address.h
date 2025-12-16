@@ -30,15 +30,15 @@ class Address : public ::gloo::transport::Address {
   virtual std::vector<char> bytes() const override;
   virtual std::string str() const override;
 
- protected:
-  explicit Address(const Address&) = default;
-
   struct {
     uint32_t lid;
     uint32_t qpn;
     uint32_t psn;
     union ibv_gid ibv_gid;
   } addr_;
+ protected:
+  explicit Address(const Address&) = default;
+
 
   // Pair can access addr_ directly
   friend class Pair;

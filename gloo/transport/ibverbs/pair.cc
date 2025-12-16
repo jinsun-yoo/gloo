@@ -24,8 +24,10 @@ namespace ibverbs {
 Pair::Pair(
     int rank,
     const std::shared_ptr<Device>& dev,
-    std::chrono::milliseconds timeout)
-    : rank_(rank),
+    std::chrono::milliseconds timeout,
+    int srcrank)
+    : dstrank_(rank),
+      srcrank_(srcrank),
       dev_(dev),
       sync_(false),
       busyPoll_(false),
@@ -192,6 +194,7 @@ void Pair::connect(const std::vector<char>& bytes) {
       IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT | IBV_QP_RNR_RETRY |
           IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC);
   GLOO_ENFORCE_EQ(rv, 0);
+  GLOO_DEBUG("Connect pair from rank ", srcrank_, " to rank ", dstrank_, " with peer", peer_.str());
 }
 
 // Switches the pair into synchronous mode.
@@ -235,7 +238,7 @@ void Pair::sendMemoryRegion(struct ibv_mr* src, int slot) {
   wr.imm_data = slot;
 
   GLOO_DEBUG(
-      "sendMemoryRegion slot=", slot, " addr=", src->addr, " lkey=", src->lkey);
+      "Pair from ",srcrank_," to ", dstrank_, " sendMemoryRegion slot=", slot, " addr=", src->addr, " lkey=", src->lkey);
 
   // The work request is serialized and sent to the driver so it
   // doesn't need to be valid after the ibv_post_send call.
@@ -265,6 +268,14 @@ void Pair::recvMemoryRegion(
       if (timeout_ != kNoTimeout &&
           (std::chrono::steady_clock::now() - start) >= timeout_) {
         lock.unlock();
+        const char* gdb_debug_env = getenv("GDB_DEBUG");
+        if (gdb_debug_env != nullptr) {
+            std::cout << "GDB_DEBUG=" << gdb_debug_env << std::endl;
+            if (dstrank_ != 0) {
+                sleep(300);
+            }
+        }
+        sleep(30);
         signalIoFailure(GLOO_ERROR_MSG(
             "Timeout waiting for memory region from ", peer_.str()));
         GLOO_ENFORCE(false, "Unexpected code path");
@@ -503,7 +514,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
         ibv_wc_status_str(wc->status));
 
     auto& q = recvCompletionHandlers_[slot];
-    q.front()->handleCompletion(rank_, wc);
+    q.front()->handleCompletion(dstrank_, wc);
     if (!q.front()->isPeristentHandler()) {
       q.pop_front();
     }
@@ -525,7 +536,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
         ibv_wc_status_str(wc->status));
 
     auto& q = sendCompletionHandlers_[slot];
-    q.front()->handleCompletion(rank_, wc);
+    q.front()->handleCompletion(dstrank_, wc);
     if (!q.front()->isPeristentHandler()) {
       q.pop_front();
     }
@@ -634,7 +645,11 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset) {
             wr.wr.rdma.remote_addr,
             std::dec,
             " rkey=",
-            wr.wr.rdma.rkey);
+            wr.wr.rdma.rkey,
+            " length=",
+            length,
+            " peer info=",
+            peer_.str());
 
         struct ibv_send_wr* bad_wr;
         auto rv = ibv_post_send(qp_, &wr, &bad_wr);
@@ -655,9 +670,10 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset) {
 }
 
 void Pair::signalIoFailure(const std::string& msg) {
-  std::cerr << "Rank " << rank_ << ": at QP " << qp_->qp_num << " exiting due to IO failure: " << msg << std::endl;
-  throw std::runtime_error("Rank " + std::to_string(rank_) + " at QP " + std::to_string(qp_->qp_num) + " exiting due to IO failure: " + msg);
-  return;
+  std::cerr << "Pair from Rank " << srcrank_ << " to Rank " << dstrank_ << ": at QP " << qp_->qp_num << " exiting due to IO failure: " << msg << std::endl;
+  // Temp hide for debug
+  // throw std::runtime_error("Rank " + std::to_string(dstrank_) + " at QP " + std::to_string(qp_->qp_num) + " exiting due to IO failure: " + msg);
+  // return;
   std::lock_guard<std::mutex> lock(m_);
   GLOO_ERROR(msg);
   auto ex = ::gloo::IoException(msg);

@@ -112,7 +112,7 @@ endif()
 if(USE_ROCM AND USE_RCCL)
   add_subdirectory(nccl)
 endif()
-add_subdirectory(rendezvous)
+# add_subdirectory(rendezvous)
 add_subdirectory(transport)
 
 # Depend on pthreads for transport device threads

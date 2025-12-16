@@ -59,9 +59,10 @@ class Pair : public ::gloo::transport::Pair {
 
  public:
   explicit Pair(
-      int rank,
+      int dstrank,
       const std::shared_ptr<Device>& dev,
-      std::chrono::milliseconds timeout);
+      std::chrono::milliseconds timeout,
+      int srcrank);
 
   virtual ~Pair();
 
@@ -113,8 +114,11 @@ class Pair : public ::gloo::transport::Pair {
 
   void signalIoFailure(const std::string& msg);
 
+  Address self_;
+  Address peer_;
  protected:
-  const int rank_;
+  const int dstrank_;
+  const int srcrank_;
 
   std::shared_ptr<Device> dev_;
 
@@ -132,8 +136,6 @@ class Pair : public ::gloo::transport::Pair {
   // Otherwise, destruction will hang (see ibv_get_cq_event(3)).
   int completionEventsHandled_;
 
-  Address self_;
-  Address peer_;
 
   struct ibv_cq* cq_;
   struct ibv_qp* qp_;
