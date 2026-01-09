@@ -44,9 +44,6 @@ class ContextFactory {
 
   explicit ContextFactory(std::shared_ptr<::gloo::Context> backingContext);
 
-  std::shared_ptr<::gloo::Context> makeContext(
-      std::shared_ptr<transport::Device>& dev);
-
  protected:
   std::shared_ptr<::gloo::Context> backingContext_;
 
