@@ -45,9 +45,9 @@ class BufferHandler {
 };
 
 class Pair : public ::gloo::transport::Pair {
-  static constexpr int kMaxBuffers = 32;
-  static constexpr auto kRecvCompletionQueueCapacity = kMaxBuffers;
-  static constexpr auto kSendCompletionQueueCapacity = kMaxBuffers;
+  static constexpr int kMaxBuffers = 1;
+  static constexpr auto kRecvCompletionQueueCapacity = kMaxBuffers * 32;
+  static constexpr auto kSendCompletionQueueCapacity = kMaxBuffers * 32;
   static constexpr auto kCompletionQueueCapacity =
       kRecvCompletionQueueCapacity + kSendCompletionQueueCapacity;
 
@@ -104,7 +104,7 @@ class Pair : public ::gloo::transport::Pair {
 
   void handleCompletionEvent();
 
-  void pollCompletions();
+  int pollCompletions();
 
   void handleCompletion(struct ibv_wc* wc);
 

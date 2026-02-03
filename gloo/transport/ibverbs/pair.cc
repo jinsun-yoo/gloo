@@ -113,7 +113,10 @@ Pair::Pair(
   // region in every receive work request.
   for (int i = 0; i < kMaxBuffers; ++i) {
     mappedRecvRegions_[i] = make_unique<MemoryRegion>(dev_->pd_);
-    postReceive();
+    if (rank == (srcrank + 1) % 4) {
+      std::cout << "From Rank " << srcrank << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+      postReceive();
+    }
   }
 }
 
