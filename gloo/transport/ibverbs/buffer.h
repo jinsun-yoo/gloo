@@ -37,6 +37,8 @@ class Buffer : public ::gloo::transport::Buffer, public BufferHandler {
   void handleCompletion(int rank, struct ibv_wc* wc) override;
   bool pollRecv();
   bool pollSend();
+  // Returns number of wc, instead of simple boolean.
+  int pollQP();
 
   void signalError(const std::exception_ptr& ex) override;
   void checkErrorState();

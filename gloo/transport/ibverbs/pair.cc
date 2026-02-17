@@ -250,11 +250,15 @@ void Pair::sendMemoryRegion(struct ibv_mr* src, int slot) {
   if (rv != 0) {
     signalIoFailure(GLOO_ERROR_MSG("ibv_post_send: ", rv));
   }
+  mappedSendRegions_[slot].emplace_back(std::move(mr));
+  int nwc = pollCompletions();
+  while (nwc == 0) {
+    nwc = pollCompletions();
+  }
 
   // Keep memory region around until this send operation completes.
   // They are posted in FIFO order, but may complete in arbitrary order.
   // Therefore we store them in a map keyed on the buffer slot.
-  mappedSendRegions_[slot].emplace_back(std::move(mr));
 }
 
 void Pair::recvMemoryRegion(
@@ -459,7 +463,7 @@ void Pair::handleCompletionEvent() {
 // called from the device thread, this pair's mutex has already been
 // acquired. When called from the user thread, the mutex won't be
 // acquired (since there's only a single thread using this pair).
-void Pair::pollCompletions() {
+int Pair::pollCompletions() {
   std::array<struct ibv_wc, kCompletionQueueCapacity> wc;
 
   // Invoke handler for every work completion.
@@ -484,6 +488,7 @@ void Pair::pollCompletions() {
   //   break;
   // }
   // }
+  return nwc;
 }
 
 void Pair::handleCompletion(struct ibv_wc* wc) {
@@ -502,7 +507,12 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // It is set in the Pair::send function.
     // auto slot = wc->imm_data;
     // For actual data, we use imm_data to indicate stream id.
-    auto slot = wc->wr_id;
+    // auto slot = wc->imm_data;
+    // Used to pass the buffer index as slot in imm_data
+    // But now use stream_id for imm_data
+    // Thankfully, buffer[] is index 0, for now, so hardcode.
+    // 
+    auto slot = 0;
     GLOO_ENFORCE_EQ(
         wc->status,
         IBV_WC_SUCCESS,
@@ -564,7 +574,12 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     //
     // Slot is encoded in immediate data on receive work completion.
     // It is set in the Pair::sendMemoryRegion function.
-    auto slot = wc->imm_data;
+    // auto slot = wc->imm_data;
+    // Used to pass the buffer index as slot in imm_data
+    // But now use stream_id for imm_data
+    // Thankfully, buffer[] is index 0, for now, so hardcode.
+    // 
+    auto slot = 0;
     GLOO_ENFORCE_EQ(
         wc->status,
         IBV_WC_SUCCESS,

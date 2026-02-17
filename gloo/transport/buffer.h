@@ -31,7 +31,7 @@ class Buffer {
     send(0, size_);
   }
 
-  void recv(int wr_id) {};
+  virtual void recv(int wr_id) = 0;
   
   virtual void waitRecv() = 0;
   virtual void waitSend() = 0;
@@ -45,6 +45,11 @@ class Buffer {
   }
   
   virtual bool pollRecv() {
+    // Default behavior: try to wait with no timeout (non-blocking check)  
+    // This is a simple fallback - derived classes should provide better implementations
+    return false;  // Conservatively return false by default
+  }
+  virtual int pollQP() {
     // Default behavior: try to wait with no timeout (non-blocking check)  
     // This is a simple fallback - derived classes should provide better implementations
     return false;  // Conservatively return false by default

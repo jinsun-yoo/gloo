@@ -134,6 +134,11 @@ bool Buffer::pollRecv() {
   return true;
 }
 
+int Buffer::pollQP() { 
+  int nwc = pair_->pollCompletions();
+  return nwc;
+}
+
 bool Buffer::pollSend() {
   // Assuming sync, sendCompletions is always 0 or 1
   if (sendCompletions_ == 0) {
