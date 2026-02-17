@@ -28,13 +28,14 @@ class Buffer : public ::gloo::transport::Buffer, public BufferHandler {
  public:
   virtual ~Buffer();
 
-  virtual void send(size_t offset, size_t length, size_t roffset = 0) override;
+  virtual void send(size_t offset, size_t length, size_t roffset = 0, int imm_data = -1) override;
 
   virtual void waitRecv() override;
   virtual void waitSend() override;
+  void recv(int wr_id);
 
   void handleCompletion(int rank, struct ibv_wc* wc) override;
-  bool pollRecv() ;
+  bool pollRecv();
   bool pollSend();
 
   void signalError(const std::exception_ptr& ex) override;

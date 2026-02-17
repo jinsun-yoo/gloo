@@ -24,13 +24,15 @@ class Buffer {
     debug_ = debug;
   }
 
-  virtual void send(size_t offset, size_t length, size_t roffset = 0) = 0;
+  virtual void send(size_t offset, size_t length, size_t roffset = 0, int imm_data = -1) = 0;
 
   // Send entire buffer by default
   void send() {
     send(0, size_);
   }
 
+  void recv(int wr_id) {};
+  
   virtual void waitRecv() = 0;
   virtual void waitSend() = 0;
   

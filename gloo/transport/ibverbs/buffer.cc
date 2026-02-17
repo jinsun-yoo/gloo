@@ -204,7 +204,7 @@ void Buffer::waitSend() {
   }
 }
 
-void Buffer::send(size_t offset, size_t length, size_t roffset) {
+void Buffer::send(size_t offset, size_t length, size_t roffset, int imm_data) {
   {
     std::unique_lock<std::mutex> lock(m_);
 
@@ -227,7 +227,11 @@ void Buffer::send(size_t offset, size_t length, size_t roffset) {
 
   // Release lock before calling into the pair to avoid deadlock.
 
-  pair_->send(this, offset, length, roffset);
+  pair_->send(this, offset, length, roffset, imm_data);
+}
+
+void Buffer::recv(int wr_id){
+  pair_->postReceive(wr_id);
 }
 
 void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {

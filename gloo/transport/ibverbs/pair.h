@@ -108,10 +108,12 @@ class Pair : public ::gloo::transport::Pair {
 
   void handleCompletion(struct ibv_wc* wc);
 
-  void send(Buffer* buf, size_t offset, size_t length, size_t roffset);
+  void send(Buffer* buf, size_t offset, size_t length, size_t roffset, int imm_data = -1);
 
   void close() override;
 
+  void postReceive(int wr_id=0);
+  
   void signalIoFailure(const std::string& msg);
 
   Address self_;
@@ -179,7 +181,6 @@ class Pair : public ::gloo::transport::Pair {
       int slot,
       std::function<void(struct ibv_mr)> callback);
 
-  void postReceive();
 
   std::chrono::milliseconds getTimeout() const {
     return timeout_;

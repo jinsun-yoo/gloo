@@ -287,13 +287,14 @@ void Pair::recvMemoryRegion(
   }
 }
 
-void Pair::postReceive() {
+void Pair::postReceive(int wr_id) {
   const auto& mr = mappedRecvRegions_[recvPosted_++ % kMaxBuffers];
   struct ibv_sge list = mr->sge();
   struct ibv_recv_wr wr;
   memset(&wr, 0, sizeof(wr));
   wr.sg_list = &list;
   wr.num_sge = 1;
+  wr.wr_id = wr_id;
 
   // The work request is serialized and sent to the driver so it
   // doesn't need to be valid after the ibv_post_recv call.
@@ -496,7 +497,9 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // Incoming RDMA write completed.
     // Slot is encoded in immediate data on receive work completion.
     // It is set in the Pair::send function.
-    auto slot = wc->imm_data;
+    // auto slot = wc->imm_data;
+    // For actual data, we use imm_data to indicate stream id.
+    auto slot = wc->wr_id;
     GLOO_ENFORCE_EQ(
         wc->status,
         IBV_WC_SUCCESS,
@@ -505,6 +508,8 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
         ": ",
         ibv_wc_status_str(wc->status));
 
+    // Only 1 buffer per QP for now
+    // auto& q = recvCompletionHandlers_[slot];
     auto& q = recvCompletionHandlers_[slot];
     q.front()->handleCompletion(dstrank_, wc);
     if (!q.front()->isPeristentHandler()) {
@@ -512,13 +517,15 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     }
 
     // Backfill receive work requests.
-    postReceive();
+    // postReceive();
   } else if (wc->opcode == IBV_WC_RDMA_WRITE) {
     // Outbound RDMA write completed.
     // Slot is encoded in wr_id fields on send work request. Unlike
     // the receive work completions, the immediate data field on send
     // work requests are not pass to the respective work completion.
-    auto slot = wc->wr_id;
+    // auto slot = wc->wr_id;
+    // With 1Buffer:1QP assumption, slot is always 0.
+    auto slot = 0;
     GLOO_ENFORCE_EQ(
         wc->status,
         IBV_WC_SUCCESS,
@@ -578,7 +585,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     //cv_.notify_all();
 
     // Backfill receive work requests.
-    postReceive();
+    postReceive(wc->wr_id);
   } else if (wc->opcode == IBV_WC_SEND) {
     // Memory region send completed.
 
@@ -605,11 +612,11 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
   }
 }
 
-void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset) {
+void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, int imm_data) {
   std::unique_lock<std::mutex> lock(m_);
 
   auto send =
-      [this, buffer, offset, length, roffset](struct ibv_mr peer) mutable {
+      [this, buffer, offset, length, roffset, imm_data](struct ibv_mr peer) mutable {
         struct ibv_sge list;
         list.addr = (uint64_t)buffer->ptr_ + offset;
         list.length = length;
@@ -617,12 +624,18 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset) {
 
         struct ibv_send_wr wr;
         memset(&wr, 0, sizeof(wr));
-        wr.wr_id = buffer->slot_;
+        wr.wr_id = imm_data;
+        GLOO_ENFORCE_GE(imm_data, 0, "imm_data must be non-negative");
         wr.sg_list = &list;
         wr.num_sge = 1;
         wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
         wr.send_flags = IBV_SEND_SIGNALED;
-        wr.imm_data = buffer->slot_;
+        // imm_data will be the stream_id passed, if not negative. 
+        // Default behavior was to use the slot id. 
+        wr.imm_data = imm_data;
+        if (imm_data == -1) {
+          wr.imm_data = buffer->slot_;
+        }
 
         wr.wr.rdma.remote_addr = (uint64_t)peer.addr + roffset;
         wr.wr.rdma.rkey = peer.rkey;
