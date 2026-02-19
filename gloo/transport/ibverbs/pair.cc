@@ -500,6 +500,24 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
       wc->wr_id,
       " opcode=",
       wc->opcode);
+  
+  if (wc->status != IBV_WC_SUCCESS) {
+    GLOO_ERROR(
+        "Work completion error: ",
+        ibv_wc_status_str(wc->status),
+        " for opcode=",
+        wc->opcode,
+        " wr_id=",
+        wc->wr_id);
+    signalIoFailure(GLOO_ERROR_MSG(
+        "Work completion error: ",
+        ibv_wc_status_str(wc->status),
+        " for opcode=",
+        wc->opcode,
+        " wr_id=",
+        wc->wr_id));
+    return;
+  }
 
   if (wc->opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
     // Incoming RDMA write completed.
