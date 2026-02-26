@@ -211,12 +211,11 @@ void Buffer::waitSend() {
 
 void Buffer::send(size_t offset, size_t length, size_t roffset, int imm_data) {
   {
-    std::unique_lock<std::mutex> lock(m_);
 
     // Can't assert on roffset, since we don't know the size of
     // the remote buffer. Refactor of initialization code needed
     // to support this.
-    GLOO_ENFORCE_LE(offset + length, size_);
+    // GLOO_ENFORCE_LE(offset + length, size_);
 
     checkErrorState();
 
@@ -240,7 +239,7 @@ void Buffer::recv(int wr_id){
 }
 
 void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {
-  std::unique_lock<std::mutex> lock(m_);
+  // std::unique_lock<std::mutex> lock(m_);
 
   if (wc->opcode & IBV_WC_RECV) {
     if (debug_) {

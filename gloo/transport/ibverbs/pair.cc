@@ -262,19 +262,15 @@ void Pair::sendMemoryRegion(struct ibv_mr* src, int slot) {
 }
 
 void Pair::recvMemoryRegion(
-    std::unique_lock<std::mutex>& lock,
     int slot,
     std::function<void(struct ibv_mr)> callback) {
   if (sync_) {
     auto it = peerMemoryRegions_.find(slot);
     auto start = std::chrono::steady_clock::now();
     while (it == peerMemoryRegions_.end()) {
-      lock.unlock();
       pollCompletions();
-      lock.lock();
       if (timeout_ != kNoTimeout &&
           (std::chrono::steady_clock::now() - start) >= timeout_) {
-        lock.unlock();
         signalIoFailure(GLOO_ERROR_MSG(
             "Timeout waiting for memory region from ", peer_.str()));
         GLOO_ENFORCE(false, "Unexpected code path");
@@ -316,7 +312,6 @@ std::unique_ptr<::gloo::transport::Buffer> Pair::createSendBuffer(
     int slot,
     void* ptr,
     size_t size) {
-  std::unique_lock<std::mutex> lock(m_);
   GLOO_ENFORCE_EQ(sendCompletionHandlers_.count(slot), 0);
   auto buffer = new Buffer(this, slot, ptr, size);
   auto& q = sendCompletionHandlers_[slot];
@@ -330,7 +325,6 @@ std::unique_ptr<::gloo::transport::Buffer> Pair::createRecvBuffer(
     int slot,
     void* ptr,
     size_t size) {
-  std::unique_lock<std::mutex> lock(m_);
   GLOO_ENFORCE_EQ(recvCompletionHandlers_.count(slot), 0);
   auto buffer = new Buffer(this, slot, ptr, size);
   auto& q = recvCompletionHandlers_[slot];
@@ -346,7 +340,6 @@ void Pair::send(
     uint64_t slot,
     size_t offset,
     size_t nbytes) {
-  std::unique_lock<std::mutex> lock(m_);
   // GLOO_DEBUG("send tag=", slot, " offset=", offset, " nbytes=", nbytes);
 
   // GLOO_ENFORCE(!sync_, "Cannot send in sync mode");
@@ -359,7 +352,6 @@ void Pair::send(
   auto mr = buf->mr_;
 
   recvMemoryRegion(
-      lock,
       slot,
       [this, mr, slot, ptr = buf->ptr, offset, nbytes](
           struct ibv_mr peer) mutable {
@@ -406,7 +398,6 @@ void Pair::recv(
     uint64_t tag,
     size_t offset,
     size_t nbytes) {
-  std::unique_lock<std::mutex> lock(m_);
 
 
   auto* buf = dynamic_cast<UnboundBuffer*>(tbuf);
@@ -439,20 +430,20 @@ void Pair::handleCompletionEvent() {
     return;
   }
 
-  try {
-    checkErrorState();
+  // try {
+  checkErrorState();
 
-    // Arm notification mechanism for completion queue.
-    rv = ibv_req_notify_cq(cq_, kNotifyOnAnyCompletion);
-    GLOO_ENFORCE_EQ(rv, 0);
+  // Arm notification mechanism for completion queue.
+  rv = ibv_req_notify_cq(cq_, kNotifyOnAnyCompletion);
+  GLOO_ENFORCE_EQ(rv, 0);
 
-    // Now poll for work completions to drain the completion queue.
-    std::unique_lock<std::mutex> lock(m_);
-    pollCompletions();
-  } catch (const ::gloo::IoException&) {
-    // Catch IO exceptions on the event handling thread. The exception has
-    // already been saved and user threads signaled.
-  }
+  // Now poll for work completions to drain the completion queue.
+  // std::unique_lock<std::mutex> lock(m_);
+  pollCompletions();
+  // } catch (const ::gloo::IoException&) {
+  //   // Catch IO exceptions on the event handling thread. The exception has
+  //   // already been saved and user threads signaled.
+  // }
 }
 
 // Polls this pair's completion queue for work completions. When
@@ -470,12 +461,7 @@ int Pair::pollCompletions() {
   // Handle work completions
   for (int i = 0; i < nwc; i++) {
     checkErrorState();
-    try {
       handleCompletion(&wc[i]);
-    } catch (const std::exception& ex) {
-      GLOO_ERROR("Exception in handleCompletion: ", ex.what());
-      throw;
-    }
   }
 
 
@@ -567,14 +553,14 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
       q.pop_front();
     }
   } else if (wc->opcode == IBV_WC_RECV) {
-    GLOO_DEBUG(
-        self_.str(),
-        "->",
-        peer_.str(),
-        ": handleCompletion id=",
-        wc->wr_id,
-        " opcode=IBV_WC_RECV slot=",
-        wc->imm_data);
+    // GLOO_DEBUG(
+    //     self_.str(),
+    //     "->",
+    //     peer_.str(),
+    //     ": handleCompletion id=",
+    //     wc->wr_id,
+    //     " opcode=IBV_WC_RECV slot=",
+    //     wc->imm_data);
     // Memory region recv completed.
     //
     // Only used by the remote side of the pair to pass ibv_mr's.
@@ -621,13 +607,13 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
   } else if (wc->opcode == IBV_WC_SEND) {
     // Memory region send completed.
 
-    GLOO_DEBUG(
-        self_.str(),
-        "->",
-        peer_.str(),
-        ": handleCompletion id=",
-        wc->wr_id,
-        " opcode=IBV_WC_SEND");
+    // GLOO_DEBUG(
+    //     self_.str(),
+    //     "->",
+    //     peer_.str(),
+    //     ": handleCompletion id=",
+    //     wc->wr_id,
+    //     " opcode=IBV_WC_SEND");
 
     auto slot = wc->wr_id;
     // GLOO_ENFORCE_EQ(
@@ -645,7 +631,6 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
 }
 
 void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, int imm_data) {
-  std::unique_lock<std::mutex> lock(m_);
 
   auto send =
       [this, buffer, offset, length, roffset, imm_data](struct ibv_mr peer) mutable {
@@ -657,7 +642,7 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
         struct ibv_send_wr wr;
         memset(&wr, 0, sizeof(wr));
         wr.wr_id = imm_data;
-        GLOO_ENFORCE_GE(imm_data, 0, "imm_data must be non-negative");
+        // GLOO_ENFORCE_GE(imm_data, 0, "imm_data must be non-negative");
         wr.sg_list = &list;
         wr.num_sge = 1;
         wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
@@ -697,9 +682,9 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
 
   if (buffer->peerMr_ == nullptr) {
     recvMemoryRegion(
-        lock, buffer->slot_, [send, buffer](struct ibv_mr peer) mutable {
-          buffer->peerMr_ = std::make_unique<struct ibv_mr>(peer);
-          send(peer);
+        buffer->slot_, [send, buffer](struct ibv_mr peer) mutable {
+        buffer->peerMr_ = std::make_unique<struct ibv_mr>(peer);
+        send(peer);
         });
   } else {
     send(*buffer->peerMr_);

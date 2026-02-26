@@ -177,7 +177,6 @@ class Pair : public ::gloo::transport::Pair {
 
   void sendMemoryRegion(struct ibv_mr* mr, int slot);
   void recvMemoryRegion(
-      std::unique_lock<std::mutex>& lock,
       int slot,
       std::function<void(struct ibv_mr)> callback);
 
