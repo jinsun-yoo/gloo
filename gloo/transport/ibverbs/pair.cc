@@ -266,15 +266,15 @@ void Pair::recvMemoryRegion(
     std::function<void(struct ibv_mr)> callback) {
   if (sync_) {
     auto it = peerMemoryRegions_.find(slot);
-    auto start = std::chrono::steady_clock::now();
+    // auto start = std::chrono::steady_clock::now();
     while (it == peerMemoryRegions_.end()) {
       pollCompletions();
-      if (timeout_ != kNoTimeout &&
-          (std::chrono::steady_clock::now() - start) >= timeout_) {
-        signalIoFailure(GLOO_ERROR_MSG(
-            "Timeout waiting for memory region from ", peer_.str()));
-        GLOO_ENFORCE(false, "Unexpected code path");
-      }
+      // if (timeout_ != kNoTimeout &&
+      //     (std::chrono::steady_clock::now() - start) >= timeout_) {
+      //   signalIoFailure(GLOO_ERROR_MSG(
+      //       "Timeout waiting for memory region from ", peer_.str()));
+      //   GLOO_ENFORCE(false, "Unexpected code path");
+      // }
       it = peerMemoryRegions_.find(slot);
     }
     callback(it->second.front());
