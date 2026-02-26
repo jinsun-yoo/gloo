@@ -512,7 +512,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // But now use stream_id for imm_data
     // Thankfully, buffer[] is index 0, for now, so hardcode.
     // 
-    auto slot = 0;
+    // auto slot = 0;
     // // GLOO_ENFORCE_EQ(
     // //     wc->status,
     // //     IBV_WC_SUCCESS,
@@ -521,13 +521,14 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // //     ": ",
     // //     ibv_wc_status_str(wc->status));
 
-    // Only 1 buffer per QP for now
+    // // Only 1 buffer per QP for now
+    // // auto& q = recvCompletionHandlers_[slot];
     // auto& q = recvCompletionHandlers_[slot];
-    auto& q = recvCompletionHandlers_[slot];
-    q.front()->handleCompletion(dstrank_, wc);
-    if (!q.front()->isPeristentHandler()) {
-      q.pop_front();
-    }
+    // auto& q = recvCompletionHandlers_[slot];
+    // q.front()->handleCompletion(dstrank_, wc);
+    // if (!q.front()->isPeristentHandler()) {
+    //   q.pop_front();
+    // }
 
     // Backfill receive work requests.
     // postReceive();
@@ -538,7 +539,7 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // work requests are not pass to the respective work completion.
     // auto slot = wc->wr_id;
     // With 1Buffer:1QP assumption, slot is always 0.
-    auto slot = 0;
+    // auto slot = 0;
     // // GLOO_ENFORCE_EQ(
     // //     wc->status,
     // //     IBV_WC_SUCCESS,
@@ -547,11 +548,11 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // //     ": ",
     // //     ibv_wc_status_str(wc->status));
 
-    auto& q = sendCompletionHandlers_[slot];
-    q.front()->handleCompletion(dstrank_, wc);
-    if (!q.front()->isPeristentHandler()) {
-      q.pop_front();
-    }
+    // auto& q = sendCompletionHandlers_[slot];
+    // q.front()->handleCompletion(dstrank_, wc);
+    // if (!q.front()->isPeristentHandler()) {
+    //   q.pop_front();
+    // }
   } else if (wc->opcode == IBV_WC_RECV) {
     // GLOO_DEBUG(
     //     self_.str(),
