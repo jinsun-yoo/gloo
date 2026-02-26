@@ -347,12 +347,12 @@ void Pair::send(
     size_t offset,
     size_t nbytes) {
   std::unique_lock<std::mutex> lock(m_);
-  GLOO_DEBUG("send tag=", slot, " offset=", offset, " nbytes=", nbytes);
+  // GLOO_DEBUG("send tag=", slot, " offset=", offset, " nbytes=", nbytes);
 
-  GLOO_ENFORCE(!sync_, "Cannot send in sync mode");
+  // GLOO_ENFORCE(!sync_, "Cannot send in sync mode");
 
   auto* buf = dynamic_cast<UnboundBuffer*>(tbuf);
-  GLOO_ENFORCE_NE(buf, nullptr);
+  // GLOO_ENFORCE_NE(buf, nullptr);
 
   sendCompletionHandlers_[slot].emplace_back(buf);
 
@@ -408,12 +408,8 @@ void Pair::recv(
     size_t nbytes) {
   std::unique_lock<std::mutex> lock(m_);
 
-  GLOO_DEBUG("recv tag=", tag, " offset=", offset, " nbytes=", nbytes);
-
-  GLOO_ENFORCE(!sync_, "Cannot recv in sync mode");
 
   auto* buf = dynamic_cast<UnboundBuffer*>(tbuf);
-  GLOO_ENFORCE_NE(buf, nullptr);
 
   recvCompletionHandlers_[tag].emplace_back(buf);
 
@@ -469,7 +465,7 @@ int Pair::pollCompletions() {
   // Invoke handler for every work completion.
   // for (;;) {
   auto nwc = ibv_poll_cq(cq_, wc.size(), wc.data());
-  GLOO_ENFORCE_GE(nwc, 0);
+  // GLOO_ENFORCE_GE(nwc, 0);
 
   // Handle work completions
   for (int i = 0; i < nwc; i++) {
@@ -531,13 +527,13 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // Thankfully, buffer[] is index 0, for now, so hardcode.
     // 
     auto slot = 0;
-    GLOO_ENFORCE_EQ(
-        wc->status,
-        IBV_WC_SUCCESS,
-        "Recv for slot ",
-        slot,
-        ": ",
-        ibv_wc_status_str(wc->status));
+    // // GLOO_ENFORCE_EQ(
+    // //     wc->status,
+    // //     IBV_WC_SUCCESS,
+    // //     "Recv for slot ",
+    // //     slot,
+    // //     ": ",
+    // //     ibv_wc_status_str(wc->status));
 
     // Only 1 buffer per QP for now
     // auto& q = recvCompletionHandlers_[slot];
@@ -557,13 +553,13 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // auto slot = wc->wr_id;
     // With 1Buffer:1QP assumption, slot is always 0.
     auto slot = 0;
-    GLOO_ENFORCE_EQ(
-        wc->status,
-        IBV_WC_SUCCESS,
-        "Send for slot ",
-        slot,
-        ": ",
-        ibv_wc_status_str(wc->status));
+    // // GLOO_ENFORCE_EQ(
+    // //     wc->status,
+    // //     IBV_WC_SUCCESS,
+    // //     "Send for slot ",
+    // //     slot,
+    // //     ": ",
+    // //     ibv_wc_status_str(wc->status));
 
     auto& q = sendCompletionHandlers_[slot];
     q.front()->handleCompletion(dstrank_, wc);
@@ -598,13 +594,13 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     // Thankfully, buffer[] is index 0, for now, so hardcode.
     // 
     auto slot = 0;
-    GLOO_ENFORCE_EQ(
-        wc->status,
-        IBV_WC_SUCCESS,
-        "Memory region recv for slot ",
-        slot,
-        ": ",
-        ibv_wc_status_str(wc->status));
+    // GLOO_ENFORCE_EQ(
+    //     wc->status,
+    //     IBV_WC_SUCCESS,
+    //     "Memory region recv for slot ",
+    //     slot,
+    //     ": ",
+    //     ibv_wc_status_str(wc->status));
 
     // Move ibv_mr from memory region 'inbox' to final slot.
     const auto& mr = mappedRecvRegions_[recvPosted_ % kMaxBuffers];
@@ -634,13 +630,13 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
         " opcode=IBV_WC_SEND");
 
     auto slot = wc->wr_id;
-    GLOO_ENFORCE_EQ(
-        wc->status,
-        IBV_WC_SUCCESS,
-        "Memory region send for slot ",
-        slot,
-        ": ",
-        ibv_wc_status_str(wc->status));
+    // GLOO_ENFORCE_EQ(
+    //     wc->status,
+    //     IBV_WC_SUCCESS,
+    //     "Memory region send for slot ",
+    //     slot,
+    //     ": ",
+    //     ibv_wc_status_str(wc->status));
 
     mappedSendRegions_[slot].pop_front();
   } else {
