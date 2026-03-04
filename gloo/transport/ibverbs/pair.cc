@@ -77,6 +77,8 @@ Pair::Pair(
     attr.pkey_index = 0;
     attr.port_num = dev_->attr_.port;
     attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE;
+    attr.retry_cnt = 1;
+    attr.rnr_retry = 1;
     rv = ibv_modify_qp(
         qp_,
         &attr,
