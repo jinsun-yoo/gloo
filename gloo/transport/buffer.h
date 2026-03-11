@@ -31,7 +31,7 @@ class Buffer {
     send(0, size_);
   }
 
-  virtual void recv(int wr_id) = 0;
+  virtual void recv(int wr_id, size_t offset, size_t length) = 0;
   
   virtual void waitRecv() = 0;
   virtual void waitSend() = 0;

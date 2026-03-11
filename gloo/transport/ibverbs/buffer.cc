@@ -235,8 +235,8 @@ void Buffer::send(size_t offset, size_t length, size_t roffset, int imm_data) {
   pair_->send(this, offset, length, roffset, imm_data);
 }
 
-void Buffer::recv(int wr_id){
-  pair_->postReceive(wr_id);
+void Buffer::recv(int wr_id, size_t offset, size_t recv_msg_size) {
+  pair_->postReceive(this, wr_id, offset, recv_msg_size);
 }
 
 void Buffer::handleCompletion(int rank, struct ibv_wc* wc) {

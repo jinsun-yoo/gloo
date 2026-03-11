@@ -112,7 +112,8 @@ class Pair : public ::gloo::transport::Pair {
 
   void close() override;
 
-  void postReceive(int wr_id=0);
+  void postReceive(Buffer *buf, int wr_id=0, size_t offset=0, size_t length=0);
+  void postReceiveForMr(int wr_id=0);
   
   void signalIoFailure(const std::string& msg);
 

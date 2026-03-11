@@ -117,7 +117,7 @@ Pair::Pair(
     mappedRecvRegions_[i] = make_unique<MemoryRegion>(dev_->pd_);
     if (rank == (srcrank + 1) % 4) {
       std::cout << "From Rank " << srcrank << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
-      postReceive();
+      postReceiveForMr();
     }
   }
 }
@@ -292,9 +292,30 @@ void Pair::recvMemoryRegion(
   }
 }
 
-void Pair::postReceive(int wr_id) {
+void Pair::postReceiveForMr(int wr_id) {
   const auto& mr = mappedRecvRegions_[recvPosted_++ % kMaxBuffers];
   struct ibv_sge list = mr->sge();
+  struct ibv_recv_wr wr;
+  memset(&wr, 0, sizeof(wr));
+  wr.sg_list = &list;
+  wr.num_sge = 1;
+  wr.wr_id = wr_id;
+
+  // The work request is serialized and sent to the driver so it
+  // doesn't need to be valid after the ibv_post_recv call.
+  struct ibv_recv_wr* bad_wr = nullptr;
+  auto rv = ibv_post_recv(qp_, &wr, &bad_wr);
+  if (rv != 0) {
+    signalIoFailure(GLOO_ERROR_MSG("ibv_post_recv at QP ", qp_->qp_num, ": ", rv));
+  }
+}
+
+void Pair::postReceive(Buffer *buffer, int wr_id, size_t offset, size_t recv_size) {
+  struct ibv_sge list;
+  memset(&list, 0, sizeof(list));
+  list.addr = (uint64_t)buffer->ptr_ + offset;
+  list.length = recv_size;
+  list.lkey = buffer->mr_->lkey;
   struct ibv_recv_wr wr;
   memset(&wr, 0, sizeof(wr));
   wr.sg_list = &list;
@@ -606,7 +627,8 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
     //cv_.notify_all();
 
     // Backfill receive work requests.
-    postReceive(wc->wr_id);
+    // We only need to get the recvmr only once.
+    // postReceive(wc->wr_id);
   } else if (wc->opcode == IBV_WC_SEND) {
     // Memory region send completed.
 

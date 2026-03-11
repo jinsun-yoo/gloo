@@ -32,7 +32,7 @@ class Buffer : public ::gloo::transport::Buffer, public BufferHandler {
 
   virtual void waitRecv() override;
   virtual void waitSend() override;
-  void recv(int wr_id);
+  void recv(int wr_id, size_t offset, size_t recv_msg_size);
 
   void handleCompletion(int rank, struct ibv_wc* wc) override;
   bool pollRecv();
