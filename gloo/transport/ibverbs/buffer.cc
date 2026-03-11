@@ -62,8 +62,9 @@ Buffer::~Buffer() {
   {
     std::lock_guard<std::mutex> lock(m_);
     if (sendPending_ > 0) {
-      GLOO_WARN(
-          "Destructing buffer with pending sends, sendPending_=", sendPending_);
+      // No longer meaningful as we do not call completehandler.
+      // GLOO_WARN(
+      //     "Destructing buffer with pending sends, sendPending_=", sendPending_);
     }
 
     ibv_dereg_mr(mr_);
