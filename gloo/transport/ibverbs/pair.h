@@ -62,7 +62,8 @@ class Pair : public ::gloo::transport::Pair {
       int dstrank,
       const std::shared_ptr<Device>& dev,
       std::chrono::milliseconds timeout,
-      int srcrank);
+      int srcrank,
+      int channel);
 
   virtual ~Pair();
 

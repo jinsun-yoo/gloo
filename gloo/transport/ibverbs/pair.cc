@@ -25,7 +25,8 @@ Pair::Pair(
     int rank,
     const std::shared_ptr<Device>& dev,
     std::chrono::milliseconds timeout,
-    int srcrank)
+    int srcrank,
+    int channel)
     : dstrank_(rank),
       srcrank_(srcrank),
       dev_(dev),
@@ -115,8 +116,11 @@ Pair::Pair(
   // region in every receive work request.
   for (int i = 0; i < kMaxBuffers; ++i) {
     mappedRecvRegions_[i] = make_unique<MemoryRegion>(dev_->pd_);
-    if (rank == (srcrank + 1) % 4) {
-      std::cout << "From Rank " << srcrank << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+    if (channel == 0 && rank == (srcrank_ + 1) % 4) {
+      std::cout << "Channel 0. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+      postReceiveForMr();
+    } else if (channel == 1 && rank == (srcrank_ + 3) % 4) {
+      std::cout << "Channel 1. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
       postReceiveForMr();
     }
   }
