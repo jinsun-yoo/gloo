@@ -78,8 +78,8 @@ Pair::Pair(
     attr.pkey_index = 0;
     attr.port_num = dev_->attr_.port;
     attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE;
-    attr.retry_cnt = 1;
-    attr.rnr_retry = 1;
+    attr.retry_cnt = 0;
+    attr.rnr_retry = 0;
     rv = ibv_modify_qp(
         qp_,
         &attr,
@@ -192,8 +192,8 @@ void Pair::connect(const std::vector<char>& bytes) {
   attr.sq_psn = self_.addr_.psn;
   attr.ah_attr.is_global = 1;
   attr.timeout = 14;
-  attr.retry_cnt = 7;
-  attr.rnr_retry = 7; /* infinite */
+  attr.retry_cnt = 0;
+  attr.rnr_retry = 0; /* infinite */
   attr.max_rd_atomic = 1;
 
   // Move to Ready To Send (RTS) state
