@@ -282,6 +282,9 @@ void Pair::recvMemoryRegion(
       //   GLOO_ENFORCE(false, "Unexpected code path");
       // }
       it = peerMemoryRegions_.find(slot);
+      if (it != peerMemoryRegions_.end()){
+        GLOO_DEBUG("Pair from ", srcrank_, " to ", dstrank_, " received memory region for slot ", slot);
+      }
     }
     callback(it->second.front());
     it->second.pop_front();

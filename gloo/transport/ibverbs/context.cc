@@ -30,7 +30,7 @@ std::unique_ptr<transport::Pair>& Context::createPair(int dstrank, int channel) 
   }
   ibverbs::Pair* ibv_pair = new ibverbs::Pair(dstrank, device_, getTimeout(), rank, channel);
   pairs_[dstrank][channel] = std::unique_ptr<transport::Pair>(ibv_pair);
-  std::cout << "From rank " << rank << " Create QP with rank " << dstrank << " and channel " << channel << " with src addr " << ibv_pair->self_.str() << " and dst addr " << ibv_pair->peer_.str() << std::endl;
+  std::cout << "From rank " << rank << " Create Pair with rank " << dstrank << " and channel " << channel << " with src addr " << ibv_pair->self_.str() << " and dst addr " << ibv_pair->peer_.str() << std::endl;
   return pairs_[dstrank][channel];
 }
 
