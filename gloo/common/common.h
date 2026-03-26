@@ -9,6 +9,7 @@
 #pragma once
 
 #include <memory>
+#define IS_PINGPONG false
 
 namespace gloo {
 

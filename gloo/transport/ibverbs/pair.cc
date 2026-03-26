@@ -116,12 +116,16 @@ Pair::Pair(
   // region in every receive work request.
   for (int i = 0; i < kMaxBuffers; ++i) {
     mappedRecvRegions_[i] = make_unique<MemoryRegion>(dev_->pd_);
-    if (channel == 0 && rank == (srcrank_ + 1) % 4) {
-      std::cout << "Channel 0. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+    if (IS_PINGPONG) {
       postReceiveForMr();
-    } else if (channel == 1 && rank == (srcrank_ + 1) % 4) {
-      std::cout << "Channel 1. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
-      postReceiveForMr();
+    } else {
+      if (channel == 0 && rank == (srcrank_ + 1) % 4) {
+        std::cout << "Channel 0. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+        postReceiveForMr();
+      } else if (channel == 1 && rank == (srcrank_ + 1) % 4) {
+        std::cout << "Channel 1. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
+        postReceiveForMr();
+      }
     }
   }
 }

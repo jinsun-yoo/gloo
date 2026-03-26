@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 
+#include "gloo/common/common.h"
 #include "gloo/common/error.h"
 #include "gloo/common/logging.h"
 #include "gloo/transport/address.h"
@@ -146,11 +147,31 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
     }
 
     for (int j = 0; j < nchannels; j++) {
-      auto offset = (rank * nchannels + i * size * nchannels + j) * maxLength;
-      std::vector<char> address(maxLength);
-      memcpy(address.data(), out.data() + offset, maxLength);
-      transportContext->getPair(i, j)->connect(address);
-      std::string addr_str(address.begin(), address.end());
+      if (IS_PINGPONG) {
+        std::cout << "IS_PINGPONG is true" << std::endl;
+        if (size != 2) {
+          throw std::runtime_error("Pingpong mode only supports 2 ranks. Current size: " + std::to_string(size));
+        }
+        if (nchannels != 2 && nchannels != 4) {
+          throw std::runtime_error("Pingpong mode only supports 2 or 4 channels. Current nchannels: " + std::to_string(nchannels));
+        }
+        // If nchannels: 2, map j from 0 to 1 and 1 to 0
+        // If nchannels: 4, map j from 0 to 2, 1 to 3, 2 to 0, and 3 to 1.
+        int dst_channel = (j + nchannels / 2) % nchannels;
+        int dst_offset_idx = i * size * nchannels + rank * nchannels + dst_channel;
+        std::cout << "Rank " << rank << " connecting to Rank " << i << " on channel " << j << " with dst_channel " << dst_channel << " and dst_offset_idx " << dst_offset_idx << std::endl;
+        auto offset = dst_offset_idx * maxLength;
+        std::vector<char> address(maxLength);
+        memcpy(address.data(), out.data() + offset, maxLength);
+        transportContext->getPair(i, j)->connect(address);
+        std::string addr_str(address.begin(), address.end());
+      } else { 
+        auto offset = (rank * nchannels + i * size * nchannels + j) * maxLength;
+        std::vector<char> address(maxLength);
+        memcpy(address.data(), out.data() + offset, maxLength);
+        transportContext->getPair(i, j)->connect(address);
+        std::string addr_str(address.begin(), address.end());
+      }
     }
   }
 
