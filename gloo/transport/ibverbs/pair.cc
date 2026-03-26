@@ -119,7 +119,7 @@ Pair::Pair(
     if (channel == 0 && rank == (srcrank_ + 1) % 4) {
       std::cout << "Channel 0. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
       postReceiveForMr();
-    } else if (channel == 1 && rank == (srcrank_ + 3) % 4) {
+    } else if (channel == 1 && rank == (srcrank_ + 1) % 4) {
       std::cout << "Channel 1. From Rank " << srcrank_ << " For dst QP " << rank << " with QPN " << qp_->qp_num << " Post recv MR" << std::endl;
       postReceiveForMr();
     }
