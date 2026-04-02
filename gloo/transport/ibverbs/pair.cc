@@ -496,7 +496,12 @@ int Pair::pollCompletions() {
   // Handle work completions
   for (int i = 0; i < nwc; i++) {
     checkErrorState();
-      handleCompletion(&wc[i]);
+    handleCompletion(&wc[i]);
+    if (wc[i].opcode == IBV_WC_RECV) {
+      // Assumption: IBV_WC_RECV is only used to handle postrecvmr
+      std::cout << "QP " << qp_->qp_num << " received MR for slot " << wc[i].imm_data << std::endl;
+      nwc--;
+    }
   }
 
 
