@@ -688,6 +688,9 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
         wr.sg_list = &list;
         wr.num_sge = 1;
         wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+        if (imm_data == -1) {
+          wr.opcode = IBV_WR_RDMA_WRITE;
+        }
         wr.send_flags = IBV_SEND_SIGNALED;
         // imm_data will be the stream_id passed, if not negative. 
         // Default behavior was to use the slot id. 
