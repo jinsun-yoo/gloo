@@ -169,7 +169,24 @@ void Pair::connect(const std::vector<char>& bytes) {
 
   memset(&attr, 0, sizeof(attr));
   attr.qp_state = IBV_QPS_RTR;
-  attr.path_mtu = IBV_MTU_1024;
+  char* mtu = getenv("GENIE_MTU");
+  if (mtu == NULL || strcmp(mtu, "1024") == 0) {
+    attr.path_mtu = IBV_MTU_1024;
+  } else if (strcmp(mtu, "512") == 0) {
+    attr.path_mtu = IBV_MTU_512;
+  } else if (strcmp(mtu, "2048") == 0) {
+    attr.path_mtu = IBV_MTU_2048;
+  } else if (strcmp(mtu, "4096") == 0) {
+    attr.path_mtu = IBV_MTU_4096;
+  } else {
+    GLOO_THROW_INVALID_OPERATION_EXCEPTION("Invalid MTU value: ", mtu);
+  }
+  // if (srcrank_ == 0 || srcrank_ == 2) {
+  //   attr.path_mtu = IBV_MTU_512;
+  // } else {
+  //  attr.path_mtu = IBV_MTU_4096;
+  // }
+  // std::cout << "Rank " << srcrank_ << " set MTU to " << attr.path_mtu << std::endl;
   attr.dest_qp_num = peer_.addr_.qpn;
   attr.rq_psn = peer_.addr_.psn;
   attr.max_dest_rd_atomic = 1;
