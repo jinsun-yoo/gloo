@@ -141,6 +141,23 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   }
 
   // Connect every pair
+  std::vector<int> peerQpIdxByLocal;
+  if (!IS_PINGPONG) {
+    GLOO_ENFORCE_EQ(
+        nchannels % 4,
+        0,
+        "Non-pingpong mode expects 4 * nqps channels. Got nchannels=",
+        nchannels);
+    const int nqps = nchannels / 4;
+    peerQpIdxByLocal.resize(nchannels);
+    for (int qpIdx = 0; qpIdx < nqps; ++qpIdx) {
+      peerQpIdxByLocal[qpIdx] = qpIdx + nqps;
+      peerQpIdxByLocal[qpIdx + nqps] = qpIdx;
+      peerQpIdxByLocal[qpIdx + 2 * nqps] = qpIdx + 3 * nqps;
+      peerQpIdxByLocal[qpIdx + 3 * nqps] = qpIdx + 2 * nqps;
+    }
+  }
+
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
@@ -166,7 +183,18 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
         transportContext->getPair(i, j)->connect(address);
         std::string addr_str(address.begin(), address.end());
       } else { 
-        auto offset = (rank * nchannels + i * size * nchannels + j) * maxLength;
+        // j is the qp_idx locally seen. At nqp=2, 
+        // 0: send qp 0, pair with peer's qp 2
+        // 1: send qp 1, pair with peer's qp 3
+        // 2: recv qp 0, pair with peer 's qp 0
+        // 3: recv qp 1, pair with peer's qp 1
+        // 4: recv cts qp 0, that qp 0 waits for peer's qp 2 to send, pair with peer's qp 6
+        // 5: recv cts qp 1, that qp 1 waits for peer's qp 3 to send, pair with peer's qp 7
+        // 6: send cts qp 0, pair with peer's qp 4
+        // 7: send cts qp 1, pair with peer's qp 5
+        int peer_qp_idx = peerQpIdxByLocal[j];
+        auto offset =
+          (i * size * nchannels + rank * nchannels + peer_qp_idx) * maxLength;
         std::vector<char> address(maxLength);
         memcpy(address.data(), out.data() + offset, maxLength);
         transportContext->getPair(i, j)->connect(address);
