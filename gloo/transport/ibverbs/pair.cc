@@ -226,6 +226,7 @@ void Pair::connect(const std::vector<char>& bytes) {
           IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC);
   GLOO_ENFORCE_EQ(rv, 0);
   GLOO_DEBUG("Connect pair from rank ", srcrank_, " to rank ", dstrank_, " with peer", peer_.str());
+  std::cout << "From rank " << srcrank_ << " Create Pair with rank " << dstrank_ << " with src addr " << self_.str() << " and dst addr " << peer_.str() << std::endl;
 }
 
 // Switches the pair into synchronous mode.
@@ -548,6 +549,14 @@ void Pair::handleCompletion(struct ibv_wc* wc) {
         wc->opcode,
         " wr_id=",
         wc->wr_id);
+    fprintf(stderr,
+        "WC error: status=%d (%s) opcode=%d vendor_err=%u wr_id=%llu qp_num=%u\n",
+        wc->status,
+        ibv_wc_status_str(wc->status),
+        wc->opcode,
+        wc->vendor_err,
+        (unsigned long long)wc->wr_id,
+        wc->qp_num);
     signalIoFailure(GLOO_ERROR_MSG(
         "Work completion error: ",
         ibv_wc_status_str(wc->status),
