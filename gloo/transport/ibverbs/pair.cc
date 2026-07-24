@@ -214,8 +214,14 @@ void Pair::connect(const std::vector<char>& bytes) {
   attr.sq_psn = self_.addr_.psn;
   attr.ah_attr.is_global = 1;
   attr.timeout = 14;
-  attr.retry_cnt = 0;
-  attr.rnr_retry = 0; /* infinite */
+  const char* testWithPacketDrops = getenv("TEST_WITH_PACKET_DROPS");
+  const bool enableRetry =
+      testWithPacketDrops != nullptr &&
+      (strcmp(testWithPacketDrops, "1") == 0 ||
+       strcmp(testWithPacketDrops, "true") == 0 ||
+       strcmp(testWithPacketDrops, "TRUE") == 0);
+  attr.retry_cnt = enableRetry ? 7 : 0;
+  attr.rnr_retry = enableRetry ? 7 : 0;
   attr.max_rd_atomic = 1;
 
   // Move to Ready To Send (RTS) state
