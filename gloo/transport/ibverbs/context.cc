@@ -35,12 +35,17 @@ Context::~Context() {}
 
 std::unique_ptr<transport::Pair>& Context::createPair(int dstrank, int channel) {
   if (!device_) {
-    std::cout << "ERROR: device_ is null!" << std::endl;
+    logger_->error("ERROR: device_ is null!");
     throw std::runtime_error("Device is null");
   }
-  ibverbs::Pair* ibv_pair = new ibverbs::Pair(dstrank, device_, getTimeout(), rank, channel);
+  ibverbs::Pair* ibv_pair = new ibverbs::Pair(
+      dstrank,
+      device_,
+      getTimeout(),
+      rank,
+      channel,
+      device_->getLoggerSinks());
   pairs_[dstrank][channel] = std::unique_ptr<transport::Pair>(ibv_pair);
-  std::cout << "From rank " << rank << " Create Pair with rank " << dstrank << " and channel " << channel << " with src addr " << ibv_pair->self_.str() << " and dst addr " << ibv_pair->peer_.str() << std::endl;
   return pairs_[dstrank][channel];
 }
 

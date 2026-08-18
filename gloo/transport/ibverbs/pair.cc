@@ -235,7 +235,12 @@ void Pair::connect(const std::vector<char>& bytes) {
           IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC);
   GLOO_ENFORCE_EQ(rv, 0);
   GLOO_DEBUG("Connect pair from rank ", srcrank_, " to rank ", dstrank_, " with peer", peer_.str());
-  std::cout << "From rank " << srcrank_ << " Create Pair with rank " << dstrank_ << " with src addr " << self_.str() << " and dst addr " << peer_.str() << std::endl;
+  logger_->debug(
+      "From rank {} Create Pair with rank {} with src addr {} and dst addr {}",
+      srcrank_,
+      dstrank_,
+      self_.str(),
+      peer_.str());
 }
 
 // Switches the pair into synchronous mode.
@@ -526,7 +531,11 @@ int Pair::pollCompletions() {
     handleCompletion(&wc[i]);
     if (wc[i].opcode == IBV_WC_RECV) {
       // Assumption: IBV_WC_RECV is only used to handle postrecvmr
-      std::cout << "QP " << qp_->qp_num << " received MR for slot " << wc[i].imm_data << std::endl;
+      GLOO_DEBUG(
+          "QP ",
+          qp_->qp_num,
+          " received MR for slot ",
+          wc[i].imm_data);
       nwc--;
     }
   }
@@ -772,7 +781,15 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
 }
 
 void Pair::signalIoFailure(const std::string& msg) {
-  std::cerr << "Pair from Rank " << srcrank_ << " to Rank " << dstrank_ << ": at QP " << qp_->qp_num << " exiting due to IO failure: " << msg << std::endl;
+  GLOO_ERROR(
+      "Pair from Rank ",
+      srcrank_,
+      " to Rank ",
+      dstrank_,
+      ": at QP ",
+      qp_->qp_num,
+      " exiting due to IO failure: ",
+      msg);
   // Temp hide for debug
   throw std::runtime_error("Rank " + std::to_string(dstrank_) + " at QP " + std::to_string(qp_->qp_num) + " exiting due to IO failure: " + msg);
   return;
