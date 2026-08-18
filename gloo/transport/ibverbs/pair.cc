@@ -26,7 +26,8 @@ Pair::Pair(
     const std::shared_ptr<Device>& dev,
     std::chrono::milliseconds timeout,
     int srcrank,
-    int channel)
+    int channel,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks)
     : dstrank_(rank),
       srcrank_(srcrank),
       dev_(dev),
@@ -35,7 +36,9 @@ Pair::Pair(
       timeout_(timeout),
       completionEventsHandled_(0),
       recvPosted_(0),
-      ex_(nullptr) {
+      ex_(nullptr),
+      logger_(gloo::get_logger("gloo::pair", logger_sinks)) {
+  GLOO_ENFORCE(logger_, "logger required");
   int rv;
 
   // Create completion queue

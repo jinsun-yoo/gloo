@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 #include "gloo/transport/ibverbs/address.h"
 #include "gloo/transport/ibverbs/device.h"
 #include "gloo/transport/ibverbs/memory_region.h"
@@ -63,7 +65,8 @@ class Pair : public ::gloo::transport::Pair {
       const std::shared_ptr<Device>& dev,
       std::chrono::milliseconds timeout,
       int srcrank,
-      int channel);
+      int channel,
+      const std::unordered_set<spdlog::sink_ptr>& logger_sinks);
 
   virtual ~Pair();
 
@@ -125,6 +128,7 @@ class Pair : public ::gloo::transport::Pair {
   const int srcrank_;
 
   std::shared_ptr<Device> dev_;
+  std::shared_ptr<spdlog::logger> logger_;
 
   // Whether or not this pair is running in sync mode.
   std::atomic<bool> sync_;

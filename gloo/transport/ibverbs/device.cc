@@ -73,7 +73,8 @@ std::vector<std::string> getDeviceNames() {
 }
 
 std::shared_ptr<::gloo::transport::Device> CreateDevice(
-    const struct attr& constAttr) {
+    const struct attr& constAttr,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks) {
   struct attr attr = constAttr;
   IbvDevices devices;
 
@@ -115,14 +116,19 @@ std::shared_ptr<::gloo::transport::Device> CreateDevice(
     GLOO_THROW_INVALID_OPERATION_EXCEPTION(
         "Unable to find device named: ", attr.name);
   }
-  return std::make_shared<Device>(attr, context);
+  return std::make_shared<Device>(attr, context, logger_sinks);
 }
 
-Device::Device(const struct attr& attr, ibv_context* context)
+Device::Device(
+    const struct attr& attr,
+    ibv_context* context,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks)
     : attr_(attr),
       pciBusID_(infinibandToBusID(attr.name)),
       hasNvPeerMem_(hasNvPeerMem()),
-      context_(context) {
+      context_(context),
+      logger_(gloo::get_logger("gloo::device", logger_sinks)) {
+  GLOO_ENFORCE(logger_, "logger required");
   int rv;
 
   // Query and store device attributes
@@ -189,7 +195,8 @@ bool Device::hasGPUDirect() const {
 
 std::shared_ptr<transport::Context> Device::createContext(int rank, int size, int nchannels) {
   return std::shared_ptr<transport::Context>(
-      new ibverbs::Context(shared_from_this(), rank, size, nchannels));
+      new ibverbs::Context(
+          shared_from_this(), rank, size, nchannels, getLoggerSinks()));
 }
 
 void Device::loop() {

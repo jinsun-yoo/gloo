@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "gloo/common/error.h"
+#include "gloo/common/logging.h"
 #include "gloo/transport/ibverbs/device.h"
 #include "gloo/transport/ibverbs/pair.h"
 #include "gloo/transport/ibverbs/unbound_buffer.h"
@@ -18,8 +19,17 @@ namespace gloo {
 namespace transport {
 namespace ibverbs {
 
-Context::Context(std::shared_ptr<Device> device, int rank, int size, int nchannels)
-    : ::gloo::transport::Context(rank, size, nchannels), device_(device) {}
+Context::Context(
+    std::shared_ptr<Device> device,
+    int rank,
+    int size,
+    int nchannels,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks)
+    : ::gloo::transport::Context(rank, size, nchannels),
+      device_(device),
+      logger_(gloo::get_logger("gloo::context", logger_sinks)) {
+  GLOO_ENFORCE(logger_, "logger required");
+}
 
 Context::~Context() {}
 

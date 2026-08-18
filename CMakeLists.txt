@@ -16,6 +16,14 @@ endif()
 # Local CMake modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
+# When Gloo is configured on its own, provide the vendored spdlog dependency.
+if(NOT TARGET spdlog::spdlog)
+  set(SPDLOG_BUILD_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "Build spdlog as a shared library" FORCE)
+  add_subdirectory(
+    ${PROJECT_SOURCE_DIR}/../../helper/spdlog
+    ${CMAKE_CURRENT_BINARY_DIR}/spdlog)
+endif()
+
 # Build target options
 option(BUILD_TEST "Build test binary (requires gtest)" OFF)
 option(BUILD_BENCHMARK "Build benchmark binary (requires hiredis)" OFF)
@@ -151,6 +159,9 @@ configure_file(
   @ONLY)
 
 if(GLOO_INSTALL)
+  if(TARGET spdlog)
+    install(TARGETS spdlog EXPORT GlooTargets DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  endif()
   if(NOT MSVC)
     install(FILES
       ${PROJECT_BINARY_DIR}/cmake/GlooConfig.cmake

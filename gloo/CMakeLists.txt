@@ -168,6 +168,7 @@ elseif(USE_TCP_OPENSSL_LOAD)
   target_link_libraries(gloo PRIVATE dl)
 endif()
 
+target_link_libraries(gloo PUBLIC spdlog::spdlog)
 target_link_libraries(gloo PRIVATE ${gloo_DEPENDENCY_LIBS})
 
 # Add Interface include directories that are relocatable.

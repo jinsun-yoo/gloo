@@ -13,12 +13,19 @@
 #include <functional>
 #include <iostream>
 #include <limits>
+#include <unordered_set>
 #include <vector>
+
+#include <spdlog/spdlog.h>
 
 #include "gloo/common/error.h"
 #include "gloo/common/string.h"
 
 namespace gloo {
+
+std::shared_ptr<spdlog::logger> get_logger(
+    const std::string& logger_name,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks);
 
 #define GLOO_LOG_MSG(level, ...)   \
   std::cerr << ::gloo::MakeString( \

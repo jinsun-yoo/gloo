@@ -11,6 +11,8 @@
 #include "gloo/transport/context.h"
 
 #include <memory>
+#include <unordered_set>
+#include <spdlog/spdlog.h>
 
 namespace gloo {
 namespace transport {
@@ -23,7 +25,12 @@ class Pair;
 class Context : public ::gloo::transport::Context,
                 public std::enable_shared_from_this<Context> {
  public:
-  Context(std::shared_ptr<Device> device, int rank, int size, int nchannels = 1);
+  Context(
+      std::shared_ptr<Device> device,
+      int rank,
+      int size,
+      int nchannels,
+      const std::unordered_set<spdlog::sink_ptr>& logger_sinks);
 
   virtual ~Context();
 
@@ -39,6 +46,7 @@ class Context : public ::gloo::transport::Context,
 
  protected:
   std::shared_ptr<Device> device_;
+  std::shared_ptr<spdlog::logger> logger_;
 
   friend class Pair;
   friend class UnboundBuffer;

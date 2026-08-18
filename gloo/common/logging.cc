@@ -13,6 +13,25 @@
 
 namespace gloo {
 
+std::shared_ptr<spdlog::logger> get_logger(
+    const std::string& logger_name,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks) {
+  auto logger = spdlog::get(logger_name);
+  if (logger == nullptr) {
+    logger = std::make_shared<spdlog::logger>(logger_name);
+    logger->set_level(spdlog::level::trace);
+    logger->flush_on(spdlog::level::info);
+  }
+
+  auto& sinks = logger->sinks();
+  for (const auto& sink : logger_sinks) {
+    if (std::find(sinks.begin(), sinks.end(), sink) == sinks.end()) {
+      sinks.push_back(sink);
+    }
+  }
+  return logger;
+}
+
 EnforceNotMet::EnforceNotMet(
     const char* file,
     const int line,

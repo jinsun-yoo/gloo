@@ -10,9 +10,11 @@
 
 #include <atomic>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 #include <infiniband/verbs.h>
+#include <spdlog/spdlog.h>
 
 #include "gloo/config.h"
 #include "gloo/transport/device.h"
@@ -35,7 +37,9 @@ struct attr {
 // Helper function that returns the list of IB device names in sorted order
 std::vector<std::string> getDeviceNames();
 
-std::shared_ptr<::gloo::transport::Device> CreateDevice(const struct attr&);
+std::shared_ptr<::gloo::transport::Device> CreateDevice(
+    const struct attr&,
+    const std::unordered_set<spdlog::sink_ptr>& logger_sinks);
 
 // Forward declarations
 class Pair;
@@ -46,7 +50,10 @@ class Device : public ::gloo::transport::Device,
   static const int capacity_ = 64;
 
  public:
-  Device(const struct attr& attr, ibv_context* context);
+  Device(
+      const struct attr& attr,
+      ibv_context* context,
+      const std::unordered_set<spdlog::sink_ptr>& logger_sinks);
   virtual ~Device();
 
   virtual std::string str() const override;
@@ -59,6 +66,11 @@ class Device : public ::gloo::transport::Device,
       int rank,
       int size, 
       int nchannels) override;
+
+  std::unordered_set<spdlog::sink_ptr> getLoggerSinks() const {
+    return std::unordered_set<spdlog::sink_ptr>(
+        logger_->sinks().begin(), logger_->sinks().end());
+  }
 
  protected:
   struct attr attr_;
@@ -74,6 +86,7 @@ class Device : public ::gloo::transport::Device,
 
   std::atomic<bool> done_;
   std::unique_ptr<std::thread> loop_;
+  std::shared_ptr<spdlog::logger> logger_;
 
   friend class Pair;
   friend class Buffer;
