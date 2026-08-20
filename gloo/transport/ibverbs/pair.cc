@@ -523,6 +523,12 @@ int Pair::pollCompletions() {
   // Invoke handler for every work completion.
   // for (;;) {
   auto nwc = ibv_poll_cq(cq_, wc.size(), wc.data());
+  // If something goes wrong wrt message count, consider enabling this macro.
+  // One QP should have only send or only recv. note we have separate QP for RTS.
+  #ifdef DEBUG_POLL_SENDRECV
+  int sendCount = 0;
+  int recvCount = 0;
+  #endif
   // GLOO_ENFORCE_GE(nwc, 0);
 
   // Handle work completions
@@ -538,7 +544,19 @@ int Pair::pollCompletions() {
           wc[i].imm_data);
       nwc--;
     }
+    #ifdef DEBUG_POLL_SENDRECV
+    if (wc[i].opcode == IBV_WC_RDMA_WRITE) {
+      sendCount++;
+    } else if (wc[i].opcode == IBV_WC_RECV_RDMA_WITH_IMM) {
+      recvCount++;
+    }
+    #endif
   }
+  #ifdef DEBUG_POLL_SENDRECV
+  if(sendCount > 0 && recvCount > 0) {
+    logger_->critical("QP {} received both send and recv completions in the same poll: sendCount={}, recvCount={}", qp_->qp_num, sendCount, recvCount);
+  }
+  #endif
 
 
   // // Break unless wc was filled
