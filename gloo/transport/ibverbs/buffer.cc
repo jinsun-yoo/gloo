@@ -47,6 +47,24 @@ Buffer::Buffer(Pair* pair, int slot, void* ptr, size_t size)
       size == 0 ? sizeof(emptyBuf_) : size,
       access);
 
+  // [Debug] Log immediately on failure so the real cause is captured even if a
+  // later exception (e.g. during stack unwinding) masks this one via
+  // std::terminate.
+  if (mr_ == nullptr) {
+    GLOO_ERROR(
+        "ibv_reg_mr failed: slot=",
+        slot,
+        " ptr=",
+        ptr,
+        " size=",
+        size,
+        " errno=",
+        errno,
+        " (",
+        strerror(errno),
+        ")");
+  }
+
   // Provide hint if the error is EFAULT and nv_peer_mem is not loaded
   if (mr_ == nullptr && errno == EFAULT) {
     if (!pair->dev_->hasNvPeerMem_) {
