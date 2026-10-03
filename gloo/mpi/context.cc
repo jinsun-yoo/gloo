@@ -81,8 +81,10 @@ std::shared_ptr<Context> Context::createManaged() {
 
 Context::Context(const MPI_Comm& comm, int nchannels)
     : ::gloo::Context(MPICommRank(comm), MPICommSize(comm), nchannels) {
+  GLOO_INFO("Duplicating MPI communicator");
   auto error = MPI_Comm_dup(comm, &comm_);
   GLOO_ENFORCE(error == MPI_SUCCESS, "MPI_Comm_dup: ", error);
+  GLOO_INFO("Duplicated MPI communicator");
 }
 
 Context::~Context() {
@@ -95,8 +97,10 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   int rv;
 
   // Create pair to connect to every other node in the collective
+  GLOO_INFO("Creating ibverbs transport context");
   auto transportContext = dev->createContext(rank, size, nchannels);
   transportContext->setTimeout(getTimeout());
+  GLOO_INFO("Creating ", (size - 1) * nchannels, " ibverbs pairs");
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
@@ -113,11 +117,13 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   }
 
   // Agree on maximum length so we can prepare buffers
+  GLOO_INFO("Entering MPI_Allreduce for ibverbs address size");
   rv = MPI_Allreduce(
       MPI_IN_PLACE, &maxLength, 1, MPI_UNSIGNED_LONG, MPI_MAX, comm_);
   if (rv != MPI_SUCCESS) {
     GLOO_THROW_IO_EXCEPTION("MPI_Allreduce: ", rv);
   }
+  GLOO_INFO("Completed MPI_Allreduce; max ibverbs address size=", maxLength);
 
   // Prepare input and output
   std::vector<char> in(size * nchannels * maxLength);
@@ -134,11 +140,13 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
   }
 
   // Allgather to collect all addresses of all pairs
+  GLOO_INFO("Entering MPI_Allgather for ibverbs addresses");
   rv = MPI_Allgather(
       in.data(), in.size(), MPI_BYTE, out.data(), in.size(), MPI_BYTE, comm_);
   if (rv != MPI_SUCCESS) {
     GLOO_THROW_IO_EXCEPTION("MPI_Allgather: ", rv);
   }
+  GLOO_INFO("Completed MPI_Allgather for ibverbs addresses");
 
   // Connect every pair
   std::vector<int> peerQpIdxByLocal;
@@ -158,6 +166,7 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
     }
   }
 
+  GLOO_INFO("Connecting ibverbs pairs to peers");
   for (int i = 0; i < size; i++) {
     if (i == rank) {
       continue;
@@ -205,6 +214,7 @@ void Context::connectFullMesh(std::shared_ptr<transport::Device>& dev) {
 
   device_ = dev;
   transportContext_ = std::move(transportContext);
+  GLOO_INFO("Completed ibverbs full-mesh connection");
 }
 
 } // namespace mpi

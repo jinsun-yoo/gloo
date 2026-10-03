@@ -30,7 +30,7 @@ class Context : public ::gloo::Context {
   // context if you want this to be managed by Gloo.
   static std::shared_ptr<Context> createManaged();
 
-  // This constructor clone the specified MPI common world. Use it if
+  // This constructor clones the specified MPI common world. Use it if
   // you are calling MPI_Init and MPI_Finalize yourself.
   explicit Context(const MPI_Comm& comm, int nchannels = 1);
 

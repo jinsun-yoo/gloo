@@ -132,20 +132,25 @@ Device::Device(
   int rv;
 
   // Query and store device attributes
+  GLOO_INFO("Querying ibverbs device attributes");
   rv = ibv_query_device(context_, &deviceAttr_);
   GLOO_ENFORCE_EQ(rv, 0, "ibv_query_device: ", strerror(errno));
 
   // Query and store port attributes
+  GLOO_INFO("Querying ibverbs port attributes");
   rv = ibv_query_port(context_, attr_.port, &portAttr_);
   GLOO_ENFORCE_EQ(rv, 0, "ibv_query_port: ", strerror(errno));
 
   // Protection domain
+  GLOO_INFO("Allocating ibverbs protection domain");
   pd_ = ibv_alloc_pd(context_);
   GLOO_ENFORCE(pd_);
 
   // Completion channel
+  GLOO_INFO("Creating ibverbs completion channel");
   comp_channel_ = ibv_create_comp_channel(context_);
   GLOO_ENFORCE(comp_channel_);
+  GLOO_INFO("Initialized ibverbs device");
 
   // Start thread to poll completion queue and dispatch
   // completions for completed work requests.
