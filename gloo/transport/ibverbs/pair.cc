@@ -173,7 +173,10 @@ void Pair::connect(const std::vector<char>& bytes) {
   memset(&attr, 0, sizeof(attr));
   attr.qp_state = IBV_QPS_RTR;
   char* mtu = getenv("GENIE_MTU");
-  if (mtu == NULL || strcmp(mtu, "1024") == 0) {
+  if (mtu == NULL) {
+    // Like NCCL: use the local port's active MTU (the peer's MTU is not exchanged, so assumes a homogeneous fabric).
+    attr.path_mtu = dev_->portAttr_.active_mtu;
+  } else if (strcmp(mtu, "1024") == 0) {
     attr.path_mtu = IBV_MTU_1024;
   } else if (strcmp(mtu, "512") == 0) {
     attr.path_mtu = IBV_MTU_512;
