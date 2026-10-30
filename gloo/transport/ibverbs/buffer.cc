@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <iostream>
 
 #include "gloo/common/error.h"
@@ -28,11 +29,23 @@ Buffer::Buffer(Pair* pair, int slot, void* ptr, size_t size)
       sendCompletions_(0),
       sendPending_(0),
       ex_(nullptr) {
+  // Register with PCIe relaxed ordering (as NCCL and perftest do by default);
+  // optional flag, ignored by devices that lack support. Without it, host-memory
+  // DMA with several concurrent QPs per NIC (or AR per-packet writes) stalls the
+  // NIC for ms. GENIE_IB_RELAXED_ORDERING=0 disables.
+  static const bool relaxedOrdering = [] {
+    const char* e = getenv("GENIE_IB_RELAXED_ORDERING");
+    return e == nullptr || atoi(e) != 0;
+  }();
+  int access = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE;
+  if (relaxedOrdering) {
+    access |= IBV_ACCESS_RELAXED_ORDERING;
+  }
   mr_ = ibv_reg_mr(
       pair_->dev_->pd_,
       size == 0 ? static_cast<void*>(&emptyBuf_) : ptr,
       size == 0 ? sizeof(emptyBuf_) : size,
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
+      access);
 
   // Provide hint if the error is EFAULT and nv_peer_mem is not loaded
   if (mr_ == nullptr && errno == EFAULT) {
