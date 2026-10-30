@@ -136,6 +136,10 @@ class Pair : public ::gloo::transport::Pair {
   // Whether or not this pair is busy polling in sync mode.
   std::atomic<bool> busyPoll_;
 
+  // Payloads >= this (GENIE_IB_AR_THRESHOLD, default 8192 bytes) are sent as
+  // a plain RDMA_WRITE plus a zero-byte WRITE_WITH_IMM; set in the constructor.
+  size_t arThreshold_;
+
   const std::chrono::milliseconds timeout_;
 
   // Number of completion events handled by this pair's completion

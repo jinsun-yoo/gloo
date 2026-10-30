@@ -41,6 +41,12 @@ Pair::Pair(
   GLOO_ENFORCE(logger_, "logger required");
   int rv;
 
+  // Adaptive-routing split threshold (see Pair::send).
+  {
+    const char* s = getenv("GENIE_IB_AR_THRESHOLD");
+    arThreshold_ = s ? (size_t)strtoull(s, nullptr, 10) : (size_t)8192;
+  }
+
   // Create completion queue
   {
     GLOO_ENFORCE(dev_->context_, "context required");
@@ -767,6 +773,28 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
         wr.wr.rdma.remote_addr = (uint64_t)peer.addr + roffset;
         wr.wr.rdma.rkey = peer.rkey;
 
+        // Infiniband specific changes to properly leverage adaptive routing.
+        // Ref: https://github.com/NVIDIA/nccl/issues/850
+        // RDMA_WRITE_WITH_IMM packets are not adaptively routed by the IB
+        // switches (they follow the static LFT), so large payloads go as an
+        // unsignaled plain RDMA_WRITE followed by a zero-byte WRITE_WITH_IMM
+        // that carries the notification (same scheme as NCCL_IB_AR_THRESHOLD).
+        // This splits the one wr into two chained wrs: data_wr (a copy of wr,
+        // turned into a plain RDMA_WRITE with the payload) -> wr (kept as
+        // WRITE_WITH_IMM, signaled, with its payload removed).
+        // RC ordering guarantees the data is placed before the imm completion.
+        struct ibv_send_wr data_wr;
+        if (wr.opcode == IBV_WR_RDMA_WRITE_WITH_IMM && length >= arThreshold_) {
+          data_wr = wr;
+          data_wr.opcode = IBV_WR_RDMA_WRITE;
+          data_wr.send_flags = 0;
+          data_wr.next = &wr;
+          wr.sg_list = nullptr;
+          wr.num_sge = 0;
+        }
+        struct ibv_send_wr* first_wr =
+            (wr.num_sge == 0) ? &data_wr : &wr;
+
         GLOO_DEBUG(
             "send Buffer async slot=",
             wr.wr_id,
@@ -784,7 +812,7 @@ void Pair::send(Buffer* buffer, size_t offset, size_t length, size_t roffset, in
             peer_.str());
 
         struct ibv_send_wr* bad_wr;
-        auto rv = ibv_post_send(qp_, &wr, &bad_wr);
+        auto rv = ibv_post_send(qp_, first_wr, &bad_wr);
         if (rv != 0) {
           signalIoFailure(GLOO_ERROR_MSG("ibv_post_send: ", rv));
         }
